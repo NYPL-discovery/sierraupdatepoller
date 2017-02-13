@@ -8,13 +8,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.TimeZone;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
 import org.apache.camel.ProducerTemplate;
+import org.apache.camel.http.common.HttpOperationFailedException;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.model.Item;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
@@ -54,54 +54,67 @@ public class ItemIdUpdateHarvester implements Processor{
 	private List<Item> iterateToGetItemIds(String startTime) 
 			throws SierraHarvesterException{
 		List<Item> items = new ArrayList<>();
-		int offset = 0;
-		int limit = 500;
-		int total = 0;
-		String endTime = getCurrentTimeInZuluTimeFormat();
-		Map<String, Object> response = getResultsFromSierra(startTime, 
-				endTime, offset, limit);
-		Optional<Integer> optionalResponseCode = Optional.ofNullable( 
-				(Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE));
-		if(optionalResponseCode.isPresent() && 
-				 (Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE) != 404){
-			return getAllItemsForTimeRange(response, total, items, limit, offset, 
-					startTime, endTime);
+		try{
+			int offset = 0;
+			int limit = 500;
+			int total = 0;
+			String endTime = getCurrentTimeInZuluTimeFormat();
+			Map<String, Object> response = getResultsFromSierra(startTime, 
+					endTime, offset, limit);
+			Integer responseCode = (Integer) response.get(
+					HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE);		
+			if(responseCode == 200){
+				Map<String, Object> apiResponse = new ObjectMapper().readValue(
+						(String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
+					total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
+					items = addItemsFromAPIResponse(apiResponse, items);
+					if(total < limit){
+						return items;
+					}else{
+						return getAllItemsForTimeRange(response, total, items, limit, offset, 
+								startTime, endTime);
+					}
+			}
+			return items;
+		}catch(JsonParseException jsonParseException){
+			logger.error("Hit a json parse exception while parsing json response from items "
+					+ "api - ", jsonParseException);
+			throw new SierraHarvesterException("JsonParseException while parsing items "
+					+ "response - " + jsonParseException.getMessage());
+		}catch(JsonMappingException jsonMappingException){
+			logger.error("Hit a json mapping exception for items api response ", 
+					jsonMappingException);
+			throw new SierraHarvesterException("JsonMappingException while for items api response "
+					+ "- " + jsonMappingException.getMessage());
+		}catch(IOException ioe){
+			logger.error("Hit an IOException - ", ioe);
+			throw new SierraHarvesterException("IOException while for items api response "
+					+ "- " + ioe.getMessage());
 		}
-		return items;
 	}
 	
 	private List<Item> getAllItemsForTimeRange(Map<String, Object> response, int total, 
 			List<Item> items, int limit, int offset, String startTime, String endTime) 
 					throws SierraHarvesterException{
 		try{
-			Map<String, Object> apiResponse = new ObjectMapper().readValue(
-					(String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
-				total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
-				items = addItemsFromAPIResponse(apiResponse, items);
-				if(total < limit){
-					return items;
-				}else{
-					while(total == limit){
-						offset += limit;
-						response = getResultsFromSierra(startTime, 
-								endTime, offset, limit);
-						Optional<Integer> optionalResponseCode = Optional.ofNullable(
-								(Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE));
-						if(optionalResponseCode.isPresent() && 
-								(Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE) 
-								!= 404){
-							apiResponse = new ObjectMapper().readValue(
-								(String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
-							total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
-							items = addItemsFromAPIResponse(apiResponse, items);
-							if(total < limit){
-								return items;
-							}
-						}else if(!optionalResponseCode.isPresent())
-							return items;
+			while(total == limit){
+				offset += limit;
+				response = getResultsFromSierra(startTime, 
+						endTime, offset, limit);
+				Integer responseCode = (Integer) response.get(
+						HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE);		
+				if(responseCode == 200){
+					Map<String, Object> apiResponse = new ObjectMapper().readValue(
+						(String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
+					total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
+					items = addItemsFromAPIResponse(apiResponse, items);
+					if(total < limit){
+						return items;
 					}
-				}
-				return items;
+				}else
+					return items;
+			}
+			return items;
 		}catch(JsonParseException jsonParseException){
 			logger.error("Hit a json parse exception while parsing json response from items "
 					+ "api - ", jsonParseException);
@@ -147,12 +160,23 @@ public class ItemIdUpdateHarvester implements Processor{
 						httpHeaderExchange.getIn().setHeader("Authorization", "bearer " + token);
 					}
 				});
+		return getResponseFromExchange(templateResultExchange);
+	}
+	
+	private Map<String, Object> getResponseFromExchange(Exchange templateResultExchange){
 		Message out = templateResultExchange.getOut();
+		HttpOperationFailedException httpOperationFailedException = templateResultExchange.
+				getException(HttpOperationFailedException.class);
 		Integer responseCode = null;
 		String apiResponse = null;
-		responseCode = (Integer) out.getHeader(Exchange.HTTP_RESPONSE_CODE);
+		if(httpOperationFailedException != null){
+			responseCode = httpOperationFailedException.getStatusCode();
+			apiResponse = httpOperationFailedException.getResponseBody();
+		}else{
+			responseCode = out.getHeader(Exchange.HTTP_RESPONSE_CODE, Integer.class);
+			apiResponse = out.getBody(String.class);
+		}
 		logger.info("Sierra api response code - " + responseCode);
-		apiResponse = out.getBody(String.class);
 		logger.info("Sierra api response body - " + apiResponse);
 		Map<String, Object> response = new HashMap<>();
 		response.put(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE, responseCode);
