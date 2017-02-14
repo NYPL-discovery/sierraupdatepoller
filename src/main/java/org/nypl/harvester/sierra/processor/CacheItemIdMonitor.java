@@ -21,8 +21,8 @@ public class CacheItemIdMonitor implements Processor{
 	@Override
 	public void process(Exchange exchange) throws SierraHarvesterException {
 		try{
-			System.out.println(exchange.getExchangeId());
-			Exchange templateResultExchange = template.send("spring-redis://localhost:6379?command=GET"
+			Exchange templateResultExchange = template.send("spring-redis://" + 
+		System.getenv("redisHost") + ":" + System.getenv("redisPort") + "?command=GET"
 					+ "&redisTemplate=#redisTemplate", 
 					new Processor() {
 						

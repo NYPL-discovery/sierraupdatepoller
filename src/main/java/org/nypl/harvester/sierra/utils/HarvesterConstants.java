@@ -13,5 +13,6 @@ public class HarvesterConstants {
 	public static final String SIERRA_API_RESPONSE_HTTP_CODE = "sierraResponseCode";
 	public static final String KINESIS_PARTITION_KEY = "CamelAwsKinesisPartitionKey";
 	public static final String KINESIS_SEQUENCE_NUMBER = "CamelAwsKinesisSequenceNumber";
+	public static final String APP_ITEMS_LIST = "items";
 
 }

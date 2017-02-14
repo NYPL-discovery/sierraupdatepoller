@@ -7,8 +7,9 @@ import org.nypl.harvester.sierra.api.utils.OAuth2Client;
 import org.nypl.harvester.sierra.api.utils.TokenProperties;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.processor.CacheItemIdMonitor;
+import org.nypl.harvester.sierra.processor.CacheLastUpdatedTimeUpdater;
 import org.nypl.harvester.sierra.processor.ItemIdUpdateHarvester;
-import org.nypl.harvester.sierra.processor.StreamProcessor;
+import org.nypl.harvester.sierra.processor.StreamPoster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,8 +35,9 @@ public class RouteBuilderIdPoller extends RouteBuilder{
 		// id harvester has to validate and then query for that until time now
 		.process(new ItemIdUpdateHarvester(getToken(), template))
 		// send ids to kinesis
-		.process(new StreamProcessor(template));
+		.process(new StreamPoster(template))
 		// update Kinesis with last checked time
+		.process(new CacheLastUpdatedTimeUpdater(template));
 	}
 	
 	public String getToken() throws SierraHarvesterException {

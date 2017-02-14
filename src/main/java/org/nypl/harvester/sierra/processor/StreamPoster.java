@@ -2,6 +2,7 @@ package org.nypl.harvester.sierra.processor;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -10,17 +11,18 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.nypl.harvester.sierra.model.Item;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
 
-public class StreamProcessor implements Processor{
+public class StreamPoster implements Processor{
 	
 	private ProducerTemplate template;
 	
-	public StreamProcessor(ProducerTemplate template) {
+	public StreamPoster(ProducerTemplate template) {
 		this.template = template;
 	}
 
 	@Override
 	public void process(Exchange exchange) throws Exception {
-		List<Item> items = exchange.getIn().getBody(List.class);
+		Map<String, Object> exchangeContents = exchange.getIn().getBody(Map.class);
+		List<Item> items = (List<Item>) exchangeContents.get(HarvesterConstants.APP_ITEMS_LIST);
 		sendToKinesis(new ObjectMapper().writeValueAsString(items));
 	}
 	

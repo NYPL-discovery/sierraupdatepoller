@@ -45,7 +45,12 @@ public class ItemIdUpdateHarvester implements Processor{
 		try{
 			String lastUpdatedDateTime = (String) exchange.getIn().getBody();
 			lastUpdatedDateTime = validateLastUpdatedTime(lastUpdatedDateTime);
-			exchange.getIn().setBody(iterateToGetItemIds(lastUpdatedDateTime));
+			Map<String, Object> exchangeContents = new HashMap<>();
+			exchangeContents.put(HarvesterConstants.APP_ITEMS_LIST, 
+					iterateToGetItemIds(lastUpdatedDateTime));
+			exchangeContents.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME, 
+					lastUpdatedDateTime);
+			exchange.getIn().setBody(exchangeContents);
 		}catch(NullPointerException npe){
 			logger.error("Hit nullpointer exception while getting item ids that got updated - ", npe);
 			throw new SierraHarvesterException("Nullpointer exception occurred - " + npe.getMessage());
