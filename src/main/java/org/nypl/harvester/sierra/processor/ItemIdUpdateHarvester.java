@@ -35,6 +35,8 @@ public class ItemIdUpdateHarvester implements Processor{
 	
 	private String token;
 	
+	private String newUpdatedTime;
+	
 	public ItemIdUpdateHarvester(String token, ProducerTemplate producerTemplate) {
 		this.token = token;
 		this.template = producerTemplate;
@@ -49,7 +51,7 @@ public class ItemIdUpdateHarvester implements Processor{
 			exchangeContents.put(HarvesterConstants.APP_ITEMS_LIST, 
 					iterateToGetItemIds(lastUpdatedDateTime));
 			exchangeContents.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME, 
-					lastUpdatedDateTime);
+					newUpdatedTime);
 			exchange.getIn().setBody(exchangeContents);
 		}catch(NullPointerException npe){
 			logger.error("Hit nullpointer exception while getting item ids that got updated - ", npe);
@@ -64,9 +66,9 @@ public class ItemIdUpdateHarvester implements Processor{
 			int offset = 0;
 			int limit = 500;
 			int total = 0;
-			String endTime = getCurrentTimeInZuluTimeFormat();
+			newUpdatedTime = getCurrentTimeInZuluTimeFormat();
 			Map<String, Object> response = getResultsFromSierra(startTime, 
-					endTime, offset, limit);
+					newUpdatedTime, offset, limit);
 			Integer responseCode = (Integer) response.get(
 					HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE);		
 			if(responseCode == 200){
@@ -78,7 +80,7 @@ public class ItemIdUpdateHarvester implements Processor{
 						return items;
 					}else{
 						return getAllItemsForTimeRange(response, total, items, limit, offset, 
-								startTime, endTime);
+								startTime, newUpdatedTime);
 					}
 			}
 			return items;
@@ -155,6 +157,7 @@ public class ItemIdUpdateHarvester implements Processor{
 		Map<String, Object> response = getResponseFromExchange(apiResponse);
 		if((Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE) == 401){
 			token = new RouteBuilderIdPoller().generateNewTokenProperties().getTokenValue();
+			logger.info("Token expired. Got a new token - " + token);
 			apiResponse = getExchangeWithAPIResponse(startDdate, endDate, offset, limit);
 			response = getResponseFromExchange(apiResponse);
 		}
