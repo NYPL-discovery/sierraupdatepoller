@@ -17,6 +17,7 @@ import org.apache.camel.ProducerTemplate;
 import org.apache.camel.http.common.HttpOperationFailedException;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.model.Item;
+import org.nypl.harvester.sierra.routebuilder.RouteBuilderIdPoller;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,6 +146,18 @@ public class ItemIdUpdateHarvester implements Processor{
 	
 	private Map<String, Object> getResultsFromSierra(String startDdate, String endDate, 
 			int offset, int limit){
+		Exchange apiResponse = getExchangeWithAPIResponse(startDdate, endDate, offset, limit);
+		Map<String, Object> response = getResponseFromExchange(apiResponse);
+		if((Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE) == 401){
+			token = new RouteBuilderIdPoller().generateNewTokenProperties().getTokenValue();
+			apiResponse = getExchangeWithAPIResponse(startDdate, endDate, offset, limit);
+			response = getResponseFromExchange(apiResponse);
+		}
+		return response;
+	}
+	
+	private Exchange getExchangeWithAPIResponse(String startDdate, String endDate, 
+			int offset, int limit){
 		String itemApiToCall = System.getenv("sierraItemAPI") + "?" + 
 				HarvesterConstants.SIERRA_API_UPDATED_DATE + "=[" + 
 				startDdate + "," + endDate + "]&" + 
@@ -160,12 +173,12 @@ public class ItemIdUpdateHarvester implements Processor{
 						httpHeaderExchange.getIn().setHeader("Authorization", "bearer " + token);
 					}
 				});
-		return getResponseFromExchange(templateResultExchange);
+		return templateResultExchange;
 	}
 	
-	private Map<String, Object> getResponseFromExchange(Exchange templateResultExchange){
-		Message out = templateResultExchange.getOut();
-		HttpOperationFailedException httpOperationFailedException = templateResultExchange.
+	private Map<String, Object> getResponseFromExchange(Exchange exchange){
+		Message out = exchange.getOut();
+		HttpOperationFailedException httpOperationFailedException = exchange.
 				getException(HttpOperationFailedException.class);
 		Integer responseCode = null;
 		String apiResponse = null;

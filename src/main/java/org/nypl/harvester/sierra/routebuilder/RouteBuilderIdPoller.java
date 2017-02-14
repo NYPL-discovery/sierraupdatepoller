@@ -45,12 +45,7 @@ public class RouteBuilderIdPoller extends RouteBuilder{
 			if(tokenProperties.getTokenExpiration() == null || 
 					!currentDate.before(tokenProperties.getTokenExpiration())){
 				logger.info("Requesting new nypl token");
-				tokenProperties = new OAuth2Client(
-						System.getenv("accessTokenUri"),
-						System.getenv("clientId"), 
-						System.getenv("clientSecret"), 
-						System.getenv("grantType"))
-						.createAndGetTokenAccessProperties();
+				tokenProperties = generateNewTokenProperties();
 				return tokenProperties.getTokenValue();
 			}
 			logger.info("Token expires - " + tokenProperties.getTokenExpiration());
@@ -60,6 +55,15 @@ public class RouteBuilderIdPoller extends RouteBuilder{
 			logger.error("Exception caught - ", e);
 			throw new SierraHarvesterException("Exception occurred while getting token");
 		}
+	}
+	
+	public TokenProperties generateNewTokenProperties(){
+		return new OAuth2Client(
+				System.getenv("accessTokenUri"),
+				System.getenv("clientId"), 
+				System.getenv("clientSecret"), 
+				System.getenv("grantType"))
+				.createAndGetTokenAccessProperties();
 	}
 
 }
