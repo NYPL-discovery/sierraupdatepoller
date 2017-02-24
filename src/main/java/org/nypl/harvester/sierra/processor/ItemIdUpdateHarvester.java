@@ -293,7 +293,7 @@ public class ItemIdUpdateHarvester implements Processor {
 
   private String validateLastUpdatedTime(String lastUpdatedTime) {
     if (lastUpdatedTime == null) {
-      Date currentDate = new Date(2016);
+      Date currentDate = new Date();
       DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
       dateFormat.setTimeZone(TimeZone.getTimeZone("Zulu"));
 
