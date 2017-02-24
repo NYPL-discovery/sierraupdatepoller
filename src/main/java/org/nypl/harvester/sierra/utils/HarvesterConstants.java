@@ -7,6 +7,8 @@ public class HarvesterConstants {
   public static final String SIERRA_API_UPDATED_DATE = "updatedDate";
   public static final String SIERRA_API_OFFSET = "offset";
   public static final String SIERRA_API_LIMIT = "limit";
+  public static final String SIERRA_API_FIELDS_PARAMETER = "fields";
+  public static final String SIERRA_API_FIELDS_VALUE = "id";
   public static final String SIERRA_API_RESPONSE_ENTRIES = "entries";
   public static final String SIERRA_API_RESPONSE_TOTAL = "total";
   public static final String SIERRA_API_RESPONSE_ID = "id";

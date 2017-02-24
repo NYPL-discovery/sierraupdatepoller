@@ -241,16 +241,15 @@ public class ItemIdUpdateHarvester implements Processor {
   private Exchange getExchangeWithAPIResponse(String startDdate, String endDate,
       int offset, int limit) {
     String itemApiToCall = System.getenv("sierraItemApi") + "?" +
-        HarvesterConstants.SIERRA_API_UPDATED_DATE + "=[" +
-        startDdate + "," + endDate + "]&" +
+        HarvesterConstants.SIERRA_API_UPDATED_DATE + "=[" + startDdate + "," + endDate + "]&" +
         HarvesterConstants.SIERRA_API_OFFSET + "=" + offset + "&" +
-        HarvesterConstants.SIERRA_API_LIMIT + "=" + limit;
+        HarvesterConstants.SIERRA_API_LIMIT + "=" + limit + "&" +
+        HarvesterConstants.SIERRA_API_FIELDS_PARAMETER + "=" + HarvesterConstants.SIERRA_API_FIELDS_VALUE;
 
     logger.info("Calling api - " + itemApiToCall);
 
     Exchange templateResultExchange = template.send(itemApiToCall,
         new Processor() {
-
           @Override
           public void process(Exchange httpHeaderExchange) throws Exception {
             httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
@@ -294,6 +293,7 @@ public class ItemIdUpdateHarvester implements Processor {
   private String validateLastUpdatedTime(String lastUpdatedTime) {
     if (lastUpdatedTime == null) {
       Date currentDate = new Date();
+
       DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
       dateFormat.setTimeZone(TimeZone.getTimeZone("Zulu"));
 
