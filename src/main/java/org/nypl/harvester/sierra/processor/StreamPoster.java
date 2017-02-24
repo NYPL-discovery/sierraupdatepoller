@@ -48,7 +48,7 @@ public class StreamPoster implements Processor{
 							@Override
 							public void process(Exchange kinesisRequest) throws Exception {
 								kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_PARTITION_KEY,
-										UUID.randomUUID());
+										UUID.randomUUID().toString());
 								kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_SEQUENCE_NUMBER,
 										System.currentTimeMillis());
 								kinesisRequest.getIn().setBody(byteBuffer);
