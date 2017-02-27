@@ -3,7 +3,6 @@ package org.nypl.harvester.sierra.config;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
-import com.amazonaws.services.kinesis.model.ListStreamsResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -42,19 +41,6 @@ public class BaseConfig {
     );
 
     AmazonKinesisClient amazonKinesisClient = new AmazonKinesisClient(awsCredentials);
-    ListStreamsResult streamResults = amazonKinesisClient.listStreams();
-    boolean foundStream = false;
-
-    for (String streamName : streamResults.getStreamNames()) {
-      if (streamName.equals(System.getenv("kinesisStream"))) {
-        foundStream = true;
-        break;
-      }
-    }
-
-    if (!foundStream) {
-      amazonKinesisClient.createStream(System.getenv("kinesisStream"), 2);
-    }
 
     logger.info("Configured Kinesis Client");
     return amazonKinesisClient;

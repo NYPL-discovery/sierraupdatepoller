@@ -6,6 +6,8 @@ import org.apache.camel.builder.RouteBuilder;
 import org.nypl.harvester.sierra.api.utils.OAuth2Client;
 import org.nypl.harvester.sierra.api.utils.TokenProperties;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
+import org.nypl.harvester.sierra.model.streamdatamodel.SierraBibRequest;
+import org.nypl.harvester.sierra.model.streamdatamodel.SierraBibUpdate;
 import org.nypl.harvester.sierra.processor.CacheItemIdMonitor;
 import org.nypl.harvester.sierra.processor.CacheLastUpdatedTimeUpdater;
 import org.nypl.harvester.sierra.processor.ItemIdUpdateHarvester;
@@ -36,7 +38,16 @@ public class RouteBuilderIdPoller extends RouteBuilder {
         // id harvester has to validate and then query for that until time now
         .process(new ItemIdUpdateHarvester(getToken(), template))
         // send ids to kinesis
-        .process(new StreamPoster(template))
+        .process(new StreamPoster(
+            template,
+            System.getenv("kinesisBibUpdateStream"),
+            new SierraBibUpdate()
+        ))
+        .process(new StreamPoster(
+            template,
+            System.getenv("kinesisBibRequestStream"),
+            new SierraBibRequest()
+        ))
         // update Kinesis with last checked time
         .process(new CacheLastUpdatedTimeUpdater(template));
   }
@@ -46,7 +57,8 @@ public class RouteBuilderIdPoller extends RouteBuilder {
       Date currentDate = new Date();
       currentDate.setMinutes(currentDate.getMinutes() + 5);
 
-      if (tokenProperties.getTokenExpiration() == null || !currentDate.before(tokenProperties.getTokenExpiration())) {
+      if (tokenProperties.getTokenExpiration() == null || !currentDate
+          .before(tokenProperties.getTokenExpiration())) {
         logger.info("Requesting new nypl token");
 
         tokenProperties = generateNewTokenProperties();
