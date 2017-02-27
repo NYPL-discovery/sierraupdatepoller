@@ -1,13 +1,16 @@
 package org.nypl.harvester.sierra.processor;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.apache.avro.Schema;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.ProducerTemplate;
-import org.nypl.harvester.sierra.api.utils.AvroSerializer;
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.model.Item;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
@@ -35,17 +38,18 @@ public class StreamPoster implements Processor {
   }
 
   private void sendToKinesis(List<Item> items) throws SierraHarvesterException {
-    Schema schema = AvroSerializer.getSchema(items.get(0));
+    try {
+      for (Item item : items) {
+        String content = new ObjectMapper().writeValueAsString(item);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(content.getBytes());
 
-    for (Item item : items) {
-      Exchange kinesisResponse = template.send(
-          "aws-kinesis://" +
-              System.getenv("kinesisStream") +
-              "?amazonKinesisClient=#getAmazonKinesisClient",
-          new Processor() {
-            @Override
-            public void process(Exchange kinesisRequest) {
-              try {
+        Exchange kinesisResponse = template.send(
+            "aws-kinesis://" +
+                System.getenv("kinesisStream") +
+                "?amazonKinesisClient=#getAmazonKinesisClient",
+            new Processor() {
+              @Override
+              public void process(Exchange kinesisRequest) throws Exception {
                 kinesisRequest.getIn().setHeader(
                     HarvesterConstants.KINESIS_PARTITION_KEY,
                     UUID.randomUUID().toString()
@@ -54,16 +58,32 @@ public class StreamPoster implements Processor {
                     HarvesterConstants.KINESIS_SEQUENCE_NUMBER,
                     System.currentTimeMillis()
                 );
-
-                kinesisRequest.getIn().setBody(
-                    AvroSerializer.encode(schema, item)
-                );
-              } catch (Exception exception) {
-                logger.error("Exception thrown encoding data", exception);
+                kinesisRequest.getIn().setBody(byteBuffer);
               }
             }
-          }
-        );
+            );
+      }
+    } catch (JsonGenerationException jsonGenerationException) {
+      logger.error(
+          "Hit json generation exception while converting item to json - ",
+          jsonGenerationException
+      );
+
+      throw new SierraHarvesterException("Hit an exception while processing item");
+    } catch (JsonMappingException jsonMappingException) {
+      logger.error(
+          "Hit json mapping exception while converting item to json - ",
+          jsonMappingException
+      );
+
+      throw new SierraHarvesterException("Hit an exception while processing item");
+    } catch (IOException ioException) {
+      logger.error(
+          "Hit IOException while converting item to json - ",
+          ioException
+      );
+
+      throw new SierraHarvesterException("Hit an exception while processing item");
     }
   }
 

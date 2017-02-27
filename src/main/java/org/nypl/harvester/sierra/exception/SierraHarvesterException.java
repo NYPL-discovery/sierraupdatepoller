@@ -12,5 +12,4 @@ public class SierraHarvesterException extends Exception{
 	public SierraHarvesterException(String message){
 		logger.error("SierraHarvesterException occurred - " + message);
 	}
-
 }
