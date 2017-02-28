@@ -12,7 +12,7 @@ public class SierraItemUpdate extends StreamDataModel {
 
     setId(item.getId());
 
-    return false;
+    return true;
   }
 
   public String getId() {
