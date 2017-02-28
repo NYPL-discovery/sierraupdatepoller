@@ -3,7 +3,7 @@ package org.nypl.harvester.sierra.model.streamdatamodel;
 import org.nypl.harvester.sierra.model.Item;
 import org.nypl.harvester.sierra.model.StreamDataModel;
 
-public class SierraBibRequest extends StreamDataModel {
+public class SierraItemUpdate extends StreamDataModel {
   private String id;
 
   @Override

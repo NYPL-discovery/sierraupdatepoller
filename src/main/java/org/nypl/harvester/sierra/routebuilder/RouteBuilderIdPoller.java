@@ -6,8 +6,8 @@ import org.apache.camel.builder.RouteBuilder;
 import org.nypl.harvester.sierra.api.utils.OAuth2Client;
 import org.nypl.harvester.sierra.api.utils.TokenProperties;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
-import org.nypl.harvester.sierra.model.streamdatamodel.SierraBibRequest;
-import org.nypl.harvester.sierra.model.streamdatamodel.SierraBibUpdate;
+import org.nypl.harvester.sierra.model.streamdatamodel.SierraItemRetrievalRequest;
+import org.nypl.harvester.sierra.model.streamdatamodel.SierraItemUpdate;
 import org.nypl.harvester.sierra.processor.CacheItemIdMonitor;
 import org.nypl.harvester.sierra.processor.CacheLastUpdatedTimeUpdater;
 import org.nypl.harvester.sierra.processor.ItemIdUpdateHarvester;
@@ -40,13 +40,13 @@ public class RouteBuilderIdPoller extends RouteBuilder {
         // send ids to kinesis
         .process(new StreamPoster(
             template,
-            System.getenv("kinesisBibUpdateStream"),
-            new SierraBibUpdate()
+            System.getenv("kinesisItemUpdateStream"),
+            new SierraItemUpdate()
         ))
         .process(new StreamPoster(
             template,
-            System.getenv("kinesisBibRequestStream"),
-            new SierraBibRequest()
+            System.getenv("kinesisItemRetrievalRequestStream"),
+            new SierraItemRetrievalRequest()
         ))
         // update Kinesis with last checked time
         .process(new CacheLastUpdatedTimeUpdater(template));
