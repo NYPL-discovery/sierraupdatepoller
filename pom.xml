@@ -4,12 +4,12 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>org.nypl.harvester</groupId>
-	<artifactId>sierraitemidpoller</artifactId>
+	<artifactId>sierraitemupdatepoller</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>sierraitemidpoller</name>
-	<description>Demo project for Spring Boot</description>
+	<name>sierraitemupdatepoller</name>
+	<description></description>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>
