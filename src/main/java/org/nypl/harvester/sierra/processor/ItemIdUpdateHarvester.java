@@ -60,15 +60,15 @@ public class ItemIdUpdateHarvester implements Processor {
 
       exchange.getIn().setBody(exchangeContents);
     } catch (NullPointerException npe) {
-      logger.error("Hit nullpointer exception while getting item ids that got updated - ", npe);
+      logger.error("Hit null pointer exception while getting item ids that got updated - ", npe);
 
-      throw new SierraHarvesterException("Nullpointer exception occurred - " + npe.getMessage());
+      throw new SierraHarvesterException("Null pointer exception occurred - " + npe.getMessage());
     }
   }
 
-  private List<Item> iterateToGetItemIds(String startTime)
-      throws SierraHarvesterException {
+  private List<Item> iterateToGetItemIds(String startTime) throws SierraHarvesterException {
     List<Item> items = new ArrayList<>();
+
     try {
       int offset = 0;
       int limit = 500;
@@ -94,6 +94,7 @@ public class ItemIdUpdateHarvester implements Processor {
         );
 
         total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
+
         items = addItemsFromAPIResponse(apiResponse, items);
 
         if (total < limit) {
