@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
+import java.util.UUID;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.ProducerTemplate;
@@ -46,8 +47,8 @@ public class StreamPoster implements Processor{
 							
 							@Override
 							public void process(Exchange kinesisRequest) throws Exception {
-								kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_PARTITION_KEY, 
-										Integer.parseInt(System.getenv("KinesisPartitionKey")));
+								kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_PARTITION_KEY,
+										UUID.randomUUID().toString());
 								kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_SEQUENCE_NUMBER,
 										System.currentTimeMillis());
 								kinesisRequest.getIn().setBody(byteBuffer);
