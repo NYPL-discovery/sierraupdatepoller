@@ -4,6 +4,7 @@ import java.util.Map;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.ProducerTemplate;
+import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
 
 public class CacheLastUpdatedTimeUpdater implements Processor {
@@ -15,7 +16,7 @@ public class CacheLastUpdatedTimeUpdater implements Processor {
   }
 
   @Override
-  public void process(Exchange exchange) throws Exception {
+  public void process(Exchange exchange) throws SierraHarvesterException {
     Map<String, Object> exchangeContents = exchange.getIn().getBody(Map.class);
 
     String timeToUpdateInCache = (String) exchangeContents.get(
