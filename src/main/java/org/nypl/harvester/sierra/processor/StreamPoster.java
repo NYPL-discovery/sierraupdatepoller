@@ -25,7 +25,7 @@ public class StreamPoster implements Processor {
   }
 
   @Override
-  public void process(Exchange exchange) throws Exception {
+  public void process(Exchange exchange) throws SierraHarvesterException {
     Map<String, Object> exchangeContents = exchange.getIn().getBody(Map.class);
     List<Item> items = (List<Item>) exchangeContents.get(HarvesterConstants.APP_ITEMS_LIST);
 
