@@ -45,9 +45,7 @@ public class StreamPoster implements Processor {
 
     for (Item item : items) {
       Exchange exchange = template.send(
-          "aws-kinesis://" +
-              getStreamName() +
-              "?amazonKinesisClient=#getAmazonKinesisClient",
+          "aws-kinesis://" + getStreamName() + "?amazonKinesisClient=#getAmazonKinesisClient",
           new Processor() {
             @Override
             public void process(Exchange kinesisRequest) throws SierraHarvesterException {
@@ -64,15 +62,13 @@ public class StreamPoster implements Processor {
                 throw new SierraHarvesterException("Error occurred while posting to stream");
               }
             }
-          }
-      );
+          });
 
       if (exchange.isFailed()) {
         logger.error("Error processing ProducerTemplate", exchange.getException());
 
         throw new SierraHarvesterException(
-            "Error processing ProducerTemplate: " + exchange.getException().getMessage()
-        );
+            "Error processing ProducerTemplate: " + exchange.getException().getMessage());
       }
     }
 

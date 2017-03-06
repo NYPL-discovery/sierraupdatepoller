@@ -42,19 +42,20 @@ public class CacheItemIdMonitor implements Processor {
       throw new SierraHarvesterException(e.getMessage());
     }
   }
-  
-  public String getCacheStoreValue() throws SierraHarvesterException{
+
+  public String getCacheStoreValue() throws SierraHarvesterException {
     Jedis jedis = null;
-    try{
+    try {
       jedis = new Jedis(System.getenv("redisHost"), Integer.parseInt(System.getenv("redisPort")));
       return jedis.get(HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME);
-    }catch(Exception e){
+    } catch (Exception e) {
       logger.error("Error occurred while getting last updated time from redis server - ", e);
-      throw new SierraHarvesterException("Error occurred while getting last updated time from redis server");
-    }finally{
+      throw new SierraHarvesterException(
+          "Error occurred while getting last updated time from redis server");
+    } finally {
       jedis.close();
     }
-    
+
   }
 
 }

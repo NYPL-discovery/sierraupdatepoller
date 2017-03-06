@@ -27,13 +27,14 @@ public class CacheLastUpdatedTimeUpdater implements Processor {
 
   private void updateCache(String timeToUpdateInCache) throws SierraHarvesterException {
     Jedis jedis = null;
-    try{
+    try {
       jedis = new Jedis(System.getenv("redisHost"), Integer.parseInt(System.getenv("redisPort")));
       jedis.set(HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME, timeToUpdateInCache);
-    }catch(Exception e){
+    } catch (Exception e) {
       logger.error("Error occurred while getting last updated time from redis server - ", e);
-      throw new SierraHarvesterException("Error occurred while getting last updated time from redis server");
-    }finally{
+      throw new SierraHarvesterException(
+          "Error occurred while getting last updated time from redis server");
+    } finally {
       jedis.close();
     }
   }

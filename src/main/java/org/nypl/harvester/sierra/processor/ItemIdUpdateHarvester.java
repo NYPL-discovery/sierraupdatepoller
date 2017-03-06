@@ -202,8 +202,8 @@ public class ItemIdUpdateHarvester implements Processor {
             + HarvesterConstants.SIERRA_API_FIELDS_VALUE;
 
     logger.info("Calling api - " + itemApiToCall);
-
-    Exchange templateResultExchange = template.send(itemApiToCall, new Processor() {
+    
+    Exchange templateResultExchange = template.request(itemApiToCall, new Processor() {
       @Override
       public void process(Exchange httpHeaderExchange) throws Exception {
         httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
@@ -211,6 +211,16 @@ public class ItemIdUpdateHarvester implements Processor {
             HarvesterConstants.SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER + " " + token);
       }
     });
+      
+
+    /*Exchange templateResultExchange = template.send(itemApiToCall, new Processor() {
+      @Override
+      public void process(Exchange httpHeaderExchange) throws Exception {
+        httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
+        httpHeaderExchange.getIn().setHeader(HarvesterConstants.SIERRA_API_HEADER_KEY_AUTHORIZATION,
+            HarvesterConstants.SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER + " " + token);
+      }
+    });*/
 
     return templateResultExchange;
   }
