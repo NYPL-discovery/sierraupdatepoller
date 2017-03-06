@@ -15,6 +15,9 @@ import org.nypl.harvester.sierra.model.StreamDataModel;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.retry.RetryCallback;
+import org.springframework.retry.RetryContext;
+import org.springframework.retry.support.RetryTemplate;
 
 public class StreamPoster implements Processor {
 
@@ -25,11 +28,14 @@ public class StreamPoster implements Processor {
   private String streamName;
 
   private StreamDataModel streamDataModel;
+  
+  private RetryTemplate retryTemplate;
 
-  public StreamPoster(ProducerTemplate template, String streamName, StreamDataModel streamData) {
+  public StreamPoster(ProducerTemplate template, String streamName, StreamDataModel streamData, RetryTemplate retryTemplate) {
     this.template = template;
     this.streamName = streamName;
     this.streamDataModel = streamData;
+    this.retryTemplate = retryTemplate;
   }
 
   @Override
@@ -44,32 +50,40 @@ public class StreamPoster implements Processor {
     Schema schema = AvroSerializer.getSchema(this.getStreamDataModel());
 
     for (Item item : items) {
-      Exchange exchange = template.send(
-          "aws-kinesis://" + getStreamName() + "?amazonKinesisClient=#getAmazonKinesisClient",
-          new Processor() {
-            @Override
-            public void process(Exchange kinesisRequest) throws SierraHarvesterException {
-              try {
-                kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_PARTITION_KEY,
-                    UUID.randomUUID().toString());
-                kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_SEQUENCE_NUMBER,
-                    System.currentTimeMillis());
+      retryTemplate.execute(new RetryCallback<Exchange, SierraHarvesterException>() {
 
-                kinesisRequest.getIn().setBody(AvroSerializer.encode(schema,
-                    StreamDataTranslator.translate(getStreamDataModel(), item)));
-              } catch (Exception exception) {
-                logger.error("Exception thrown encoding data", exception);
-                throw new SierraHarvesterException("Error occurred while posting to stream");
-              }
-            }
-          });
+        @Override
+        public Exchange doWithRetry(RetryContext context) throws SierraHarvesterException {
+          Exchange exchange = template.request(
+              "aws-kinesis://" + getStreamName() + "?amazonKinesisClient=#getAmazonKinesisClient",
+              new Processor() {
+                @Override
+                public void process(Exchange kinesisRequest) throws SierraHarvesterException {
+                  try {
+                    kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_PARTITION_KEY,
+                        UUID.randomUUID().toString());
+                    kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_SEQUENCE_NUMBER,
+                        System.currentTimeMillis());
 
-      if (exchange.isFailed()) {
-        logger.error("Error processing ProducerTemplate", exchange.getException());
+                    kinesisRequest.getIn().setBody(AvroSerializer.encode(schema,
+                        StreamDataTranslator.translate(getStreamDataModel(), item)));
+                  } catch (Exception exception) {
+                    logger.error("Exception thrown encoding data", exception);
+                    throw new SierraHarvesterException("Error occurred while posting to stream");
+                  }
+                }
+              });
 
-        throw new SierraHarvesterException(
-            "Error processing ProducerTemplate: " + exchange.getException().getMessage());
-      }
+          if (exchange.isFailed()) {
+            logger.error("Error processing ProducerTemplate", exchange.getException());
+
+            throw new SierraHarvesterException(
+                "Error sending items to kinesis: " + exchange.getException().getMessage());
+          }
+          return exchange;
+        }
+      });
+      
     }
 
     logger.info("Sent " + items.size() + " items to Kinesis stream: " + getStreamName());

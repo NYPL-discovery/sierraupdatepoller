@@ -24,10 +24,10 @@ public class CacheItemIdMonitor implements Processor {
   @Override
   public void process(Exchange exchange) throws SierraHarvesterException {
     try {
-      String value = retryTemplate.execute(new RetryCallback<String, Throwable>() {
+      String value = retryTemplate.execute(new RetryCallback<String, SierraHarvesterException>() {
 
         @Override
-        public String doWithRetry(RetryContext retryContext) throws Throwable {
+        public String doWithRetry(RetryContext retryContext) throws SierraHarvesterException {
           return getCacheStoreValue();
         }
 
@@ -37,9 +37,6 @@ public class CacheItemIdMonitor implements Processor {
     } catch (Exception exception) {
       logger.error("Hit an issue with checking redis - ", exception);
       throw new SierraHarvesterException(exception.getMessage());
-    } catch (Throwable e) {
-      logger.error("Hit an issue with checking redis - ", e);
-      throw new SierraHarvesterException(e.getMessage());
     }
   }
 

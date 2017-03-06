@@ -24,6 +24,9 @@ import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
+import org.springframework.retry.RetryCallback;
+import org.springframework.retry.RetryContext;
+import org.springframework.retry.support.RetryTemplate;
 
 public class ItemIdUpdateHarvester implements Processor {
 
@@ -34,10 +37,13 @@ public class ItemIdUpdateHarvester implements Processor {
   private String token;
 
   private String newUpdatedTime;
+  
+  private RetryTemplate retryTemplate;
 
-  public ItemIdUpdateHarvester(String token, ProducerTemplate producerTemplate) {
+  public ItemIdUpdateHarvester(String token, ProducerTemplate producerTemplate, RetryTemplate retryTemplate) {
     this.token = token;
     this.template = producerTemplate;
+    this.retryTemplate = retryTemplate;
   }
 
   @Override
@@ -174,7 +180,7 @@ public class ItemIdUpdateHarvester implements Processor {
   }
 
   private Map<String, Object> getResultsFromSierra(String startDdate, String endDate, int offset,
-      int limit) {
+      int limit) throws SierraHarvesterException {
     Exchange apiResponse = getExchangeWithAPIResponse(startDdate, endDate, offset, limit);
 
     Map<String, Object> response = getResponseFromExchange(apiResponse);
@@ -193,7 +199,7 @@ public class ItemIdUpdateHarvester implements Processor {
   }
 
   private Exchange getExchangeWithAPIResponse(String startDdate, String endDate, int offset,
-      int limit) {
+      int limit) throws SierraHarvesterException {
     String itemApiToCall =
         System.getenv("sierraItemApi") + "?" + HarvesterConstants.SIERRA_API_UPDATED_DATE + "=["
             + startDdate + "," + endDate + "]&" + HarvesterConstants.SIERRA_API_OFFSET + "="
@@ -202,25 +208,27 @@ public class ItemIdUpdateHarvester implements Processor {
             + HarvesterConstants.SIERRA_API_FIELDS_VALUE;
 
     logger.info("Calling api - " + itemApiToCall);
-    
-    Exchange templateResultExchange = template.request(itemApiToCall, new Processor() {
-      @Override
-      public void process(Exchange httpHeaderExchange) throws Exception {
-        httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
-        httpHeaderExchange.getIn().setHeader(HarvesterConstants.SIERRA_API_HEADER_KEY_AUTHORIZATION,
-            HarvesterConstants.SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER + " " + token);
-      }
-    });
-      
 
-    /*Exchange templateResultExchange = template.send(itemApiToCall, new Processor() {
+    Exchange templateResultExchange = retryTemplate.execute(new RetryCallback<Exchange, SierraHarvesterException>() {
+
       @Override
-      public void process(Exchange httpHeaderExchange) throws Exception {
-        httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
-        httpHeaderExchange.getIn().setHeader(HarvesterConstants.SIERRA_API_HEADER_KEY_AUTHORIZATION,
-            HarvesterConstants.SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER + " " + token);
+      public Exchange doWithRetry(RetryContext context) throws SierraHarvesterException {
+        try{
+          return template.request(itemApiToCall, new Processor() {
+            @Override
+            public void process(Exchange httpHeaderExchange) throws Exception {
+              httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
+              httpHeaderExchange.getIn().setHeader(HarvesterConstants.SIERRA_API_HEADER_KEY_AUTHORIZATION,
+                  HarvesterConstants.SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER + " " + token);
+            }
+          });
+        }catch(Exception e){
+          logger.error("Error occurred while calling sierra api - ", e);
+          throw new SierraHarvesterException("Error occurred while calling sierra item api - " + e.getMessage());
+        }
       }
-    });*/
+      
+    });
 
     return templateResultExchange;
   }

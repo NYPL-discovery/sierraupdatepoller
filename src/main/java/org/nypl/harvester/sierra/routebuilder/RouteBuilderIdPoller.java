@@ -40,14 +40,14 @@ public class RouteBuilderIdPoller extends RouteBuilder {
         .process(new CacheItemIdMonitor(retryTemplate))
         // send the updatedDatekey value to id harvester
         // id harvester has to validate and then query for that until time now
-        .process(new ItemIdUpdateHarvester(getToken(), template))
+        .process(new ItemIdUpdateHarvester(getToken(), template, retryTemplate))
         // send ids to kinesis
         .process(new StreamPoster(template, System.getenv("kinesisItemUpdateStream"),
-            new SierraItemUpdate()))
+            new SierraItemUpdate(), retryTemplate))
         .process(new StreamPoster(template, System.getenv("kinesisItemRetrievalRequestStream"),
-            new SierraItemRetrievalRequest()))
+            new SierraItemRetrievalRequest(), retryTemplate))
         // update Kinesis with last checked time
-        .process(new CacheLastUpdatedTimeUpdater());
+        .process(new CacheLastUpdatedTimeUpdater(retryTemplate));
   }
 
   public String getToken() throws SierraHarvesterException {
