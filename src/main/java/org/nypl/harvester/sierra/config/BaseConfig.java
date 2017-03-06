@@ -43,6 +43,7 @@ public class BaseConfig {
     AmazonKinesisClient amazonKinesisClient = new AmazonKinesisClient(awsCredentials);
 
     logger.info("Configured Kinesis Client");
+
     return amazonKinesisClient;
   }
 

@@ -44,7 +44,7 @@ public class StreamPoster implements Processor {
     Schema schema = AvroSerializer.getSchema(this.getStreamDataModel());
 
     for (Item item : items) {
-      Exchange kinesisResponse = template.send(
+      Exchange exchange = template.send(
           "aws-kinesis://" +
               getStreamName() +
               "?amazonKinesisClient=#getAmazonKinesisClient",
@@ -72,7 +72,15 @@ public class StreamPoster implements Processor {
               }
             }
           }
+      );
+
+      if (exchange.isFailed()) {
+        logger.error("Error processing ProducerTemplate", exchange.getException());
+
+        throw new SierraHarvesterException(
+            "Error processing ProducerTemplate: " + exchange.getException().getMessage()
         );
+      }
     }
 
     logger.info("Sent " + items.size() + " items to Kinesis stream: " + getStreamName());
