@@ -2,7 +2,6 @@ package org.nypl.harvester.sierra.processor;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.apache.avro.Schema;
 import org.apache.camel.Exchange;
@@ -45,7 +44,7 @@ public class StreamPoster implements Processor {
     Schema schema = AvroSerializer.getSchema(this.getStreamDataModel());
 
     for (Item item : items) {
-      Exchange kinesisResponse = template.send(
+      Exchange exchange = template.send(
           "aws-kinesis://" +
               getStreamName() +
               "?amazonKinesisClient=#getAmazonKinesisClient",
@@ -75,9 +74,11 @@ public class StreamPoster implements Processor {
           }
       );
 
-      if (kinesisResponse.isFailed()) {
+      if (exchange.isFailed()) {
+        logger.error("Error processing ProducerTemplate", exchange.getException());
+
         throw new SierraHarvesterException(
-            "Error processing ProducerTemplate: " + kinesisResponse.getException().getMessage()
+            "Error processing ProducerTemplate: " + exchange.getException().getMessage()
         );
       }
     }
