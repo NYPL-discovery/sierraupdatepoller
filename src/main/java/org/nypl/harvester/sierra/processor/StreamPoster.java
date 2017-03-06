@@ -2,6 +2,7 @@ package org.nypl.harvester.sierra.processor;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.avro.Schema;
 import org.apache.camel.Exchange;
@@ -72,7 +73,13 @@ public class StreamPoster implements Processor {
               }
             }
           }
+      );
+
+      if (kinesisResponse.isFailed()) {
+        throw new SierraHarvesterException(
+            "Error processing ProducerTemplate: " + kinesisResponse.getException().getMessage()
         );
+      }
     }
 
     logger.info("Sent " + items.size() + " items to Kinesis stream: " + getStreamName());
