@@ -14,6 +14,8 @@ public class HarvesterConstants {
   public static final String SIERRA_API_RESPONSE_ID = "id";
   public static final String SIERRA_API_RESPONSE_BODY = "body";
   public static final String SIERRA_API_RESPONSE_HTTP_CODE = "sierraResponseCode";
+  public static final String SIERRA_API_HEADER_KEY_AUTHORIZATION = "Authorization";
+  public static final String SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER = "bearer";
   public static final String KINESIS_PARTITION_KEY = "CamelAwsKinesisPartitionKey";
   public static final String KINESIS_SEQUENCE_NUMBER = "CamelAwsKinesisSequenceNumber";
   public static final String APP_ITEMS_LIST = "items";

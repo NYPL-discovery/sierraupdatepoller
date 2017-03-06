@@ -50,25 +50,18 @@ public class StreamPoster implements Processor {
               "?amazonKinesisClient=#getAmazonKinesisClient",
           new Processor() {
             @Override
-            public void process(Exchange kinesisRequest) {
+            public void process(Exchange kinesisRequest) throws SierraHarvesterException {
               try {
-                kinesisRequest.getIn().setHeader(
-                    HarvesterConstants.KINESIS_PARTITION_KEY,
-                    UUID.randomUUID().toString()
-                );
-                kinesisRequest.getIn().setHeader(
-                    HarvesterConstants.KINESIS_SEQUENCE_NUMBER,
-                    System.currentTimeMillis()
-                );
+                kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_PARTITION_KEY,
+                    UUID.randomUUID().toString());
+                kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_SEQUENCE_NUMBER,
+                    System.currentTimeMillis());
 
-                kinesisRequest.getIn().setBody(
-                    AvroSerializer.encode(
-                        schema,
-                        StreamDataTranslator.translate(getStreamDataModel(), item)
-                    )
-                );
+                kinesisRequest.getIn().setBody(AvroSerializer.encode(schema,
+                    StreamDataTranslator.translate(getStreamDataModel(), item)));
               } catch (Exception exception) {
                 logger.error("Exception thrown encoding data", exception);
+                throw new SierraHarvesterException("Error occurred while posting to stream");
               }
             }
           }

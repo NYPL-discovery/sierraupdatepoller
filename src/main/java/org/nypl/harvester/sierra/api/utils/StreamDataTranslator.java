@@ -6,15 +6,18 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class StreamDataTranslator {
-  public static StreamDataModel translate(StreamDataModel streamData, Object object) throws SierraHarvesterException {
+  public static StreamDataModel translate(StreamDataModel streamData, Object object)
+      throws SierraHarvesterException {
     try {
-      StreamDataModel newStreamData = (StreamDataModel) Class.forName(streamData.getClass().getName()).newInstance();
+      StreamDataModel newStreamData =
+          (StreamDataModel) Class.forName(streamData.getClass().getName()).newInstance();
 
       newStreamData.translateToStreamData(object);
 
       return newStreamData;
     } catch (Exception exception) {
-      throw new SierraHarvesterException("Unable to translate object to stream data: " + exception.getMessage());
+      throw new SierraHarvesterException(
+          "Unable to translate object to stream data: " + exception.getMessage());
     }
   }
 }

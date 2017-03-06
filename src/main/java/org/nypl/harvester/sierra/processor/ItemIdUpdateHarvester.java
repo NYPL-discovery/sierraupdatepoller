@@ -36,7 +36,7 @@ public class ItemIdUpdateHarvester implements Processor {
   private String newUpdatedTime;
 
   public ItemIdUpdateHarvester(String token, ProducerTemplate producerTemplate) {
-		this.token = token;
+    this.token = token;
     this.template = producerTemplate;
   }
 
@@ -48,15 +48,10 @@ public class ItemIdUpdateHarvester implements Processor {
 
       Map<String, Object> exchangeContents = new HashMap<>();
 
-      exchangeContents.put(
-          HarvesterConstants.APP_ITEMS_LIST,
-          iterateToGetItemIds(lastUpdatedDateTime)
-      );
+      exchangeContents.put(HarvesterConstants.APP_ITEMS_LIST,
+          iterateToGetItemIds(lastUpdatedDateTime));
 
-      exchangeContents.put(
-          HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME,
-          newUpdatedTime
-      );
+      exchangeContents.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME, newUpdatedTime);
 
       exchange.getIn().setBody(exchangeContents);
     } catch (NullPointerException npe) {
@@ -76,22 +71,14 @@ public class ItemIdUpdateHarvester implements Processor {
 
       newUpdatedTime = getCurrentTimeInZuluTimeFormat();
 
-      Map<String, Object> response = getResultsFromSierra(
-          startTime,
-          newUpdatedTime,
-          offset,
-          limit
-      );
+      Map<String, Object> response = getResultsFromSierra(startTime, newUpdatedTime, offset, limit);
 
-      Integer responseCode = (Integer) response.get(
-          HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE
-      );
+      Integer responseCode =
+          (Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE);
 
       if (responseCode == 200) {
         Map<String, Object> apiResponse = new ObjectMapper().readValue(
-            (String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY),
-            Map.class
-        );
+            (String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
 
         total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
 
@@ -100,45 +87,28 @@ public class ItemIdUpdateHarvester implements Processor {
         if (total < limit) {
           return items;
         } else {
-          return getAllItemsForTimeRange(
-              response,
-              total,
-              items,
-              limit,
-              offset,
-              startTime,
-              newUpdatedTime
-          );
+          return getAllItemsForTimeRange(response, total, items, limit, offset, startTime,
+              newUpdatedTime);
         }
       }
 
       return items;
     } catch (JsonParseException jsonParseException) {
-      logger.error(
-          "Hit a json parse exception while parsing json response from items " + "api - ",
-          jsonParseException
-      );
+      logger.error("Hit a json parse exception while parsing json response from items " + "api - ",
+          jsonParseException);
 
-      throw new SierraHarvesterException(
-          "JsonParseException while parsing items " + "response - " +
-              jsonParseException.getMessage()
-      );
+      throw new SierraHarvesterException("JsonParseException while parsing items " + "response - "
+          + jsonParseException.getMessage());
     } catch (JsonMappingException jsonMappingException) {
-      logger.error(
-          "Hit a json mapping exception for items api response ",
-          jsonMappingException
-      );
+      logger.error("Hit a json mapping exception for items api response ", jsonMappingException);
 
-      throw new SierraHarvesterException(
-          "JsonMappingException while for items api response " + "- " +
-              jsonMappingException.getMessage()
-      );
+      throw new SierraHarvesterException("JsonMappingException while for items api response " + "- "
+          + jsonMappingException.getMessage());
     } catch (IOException ioe) {
       logger.error("Hit an IOException - ", ioe);
 
       throw new SierraHarvesterException(
-          "IOException while for items api response " + "- " + ioe.getMessage()
-      );
+          "IOException while for items api response " + "- " + ioe.getMessage());
     }
   }
 
@@ -149,67 +119,50 @@ public class ItemIdUpdateHarvester implements Processor {
       while (total == limit) {
         offset += limit;
 
-        response = getResultsFromSierra(
-            startTime,
-            endTime,
-            offset,
-            limit
-        );
+        response = getResultsFromSierra(startTime, endTime, offset, limit);
 
-        Integer responseCode = (Integer) response.get(
-            HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE
-        );
+        Integer responseCode =
+            (Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE);
 
-				if (responseCode == 200) {
-					Map<String, Object> apiResponse = new ObjectMapper().readValue(
-							(String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY),
-              Map.class
-          );
+        if (responseCode == 200) {
+          Map<String, Object> apiResponse = new ObjectMapper().readValue(
+              (String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
 
-					total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
+          total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
 
-					items = addItemsFromAPIResponse(apiResponse, items);
+          items = addItemsFromAPIResponse(apiResponse, items);
 
-					if (total < limit) {
-						return items;
-					}
-				} else {
-					return items;
-				}
+          if (total < limit) {
+            return items;
+          }
+        } else {
+          return items;
+        }
       }
 
       return items;
     } catch (JsonParseException jsonParseException) {
-      logger.error(
-          "Hit a json parse exception while parsing json response from items " + "api - ",
-          jsonParseException
-      );
+      logger.error("Hit a json parse exception while parsing json response from items " + "api - ",
+          jsonParseException);
 
-      throw new SierraHarvesterException(
-          "JsonParseException while parsing items " + "response - " + jsonParseException.getMessage()
-      );
+      throw new SierraHarvesterException("JsonParseException while parsing items " + "response - "
+          + jsonParseException.getMessage());
     } catch (JsonMappingException jsonMappingException) {
-      logger.error(
-          "Hit a json mapping exception for items api response ",
-          jsonMappingException
-      );
+      logger.error("Hit a json mapping exception for items api response ", jsonMappingException);
 
-      throw new SierraHarvesterException(
-          "JsonMappingException while for items api response " + "- " + jsonMappingException.getMessage()
-      );
+      throw new SierraHarvesterException("JsonMappingException while for items api response " + "- "
+          + jsonMappingException.getMessage());
     } catch (IOException ioe) {
       logger.error("Hit an IOException - ", ioe);
 
       throw new SierraHarvesterException(
-          "IOException while for items api response " + "- " + ioe.getMessage()
-      );
+          "IOException while for items api response " + "- " + ioe.getMessage());
     }
   }
 
   private List<Item> addItemsFromAPIResponse(Map<String, Object> apiResponse, List<Item> items) {
-    List<Map<String, Object>> entries = (List<Map<String, Object>>) apiResponse.get(
-        HarvesterConstants.SIERRA_API_RESPONSE_ENTRIES
-    );
+    List<Map<String, Object>> entries =
+        (List<Map<String, Object>>) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_ENTRIES);
 
     for (Map<String, Object> entry : entries) {
       Item item = new Item();
@@ -220,8 +173,8 @@ public class ItemIdUpdateHarvester implements Processor {
     return items;
   }
 
-  private Map<String, Object> getResultsFromSierra(String startDdate, String endDate,
-      int offset, int limit) {
+  private Map<String, Object> getResultsFromSierra(String startDdate, String endDate, int offset,
+      int limit) {
     Exchange apiResponse = getExchangeWithAPIResponse(startDdate, endDate, offset, limit);
 
     Map<String, Object> response = getResponseFromExchange(apiResponse);
@@ -239,25 +192,25 @@ public class ItemIdUpdateHarvester implements Processor {
     return response;
   }
 
-  private Exchange getExchangeWithAPIResponse(String startDdate, String endDate,
-      int offset, int limit) {
-    String itemApiToCall = System.getenv("sierraItemApi") + "?" +
-        HarvesterConstants.SIERRA_API_UPDATED_DATE + "=[" + startDdate + "," + endDate + "]&" +
-        HarvesterConstants.SIERRA_API_OFFSET + "=" + offset + "&" +
-        HarvesterConstants.SIERRA_API_LIMIT + "=" + limit + "&" +
-        HarvesterConstants.SIERRA_API_FIELDS_PARAMETER + "=" + HarvesterConstants.SIERRA_API_FIELDS_VALUE;
+  private Exchange getExchangeWithAPIResponse(String startDdate, String endDate, int offset,
+      int limit) {
+    String itemApiToCall =
+        System.getenv("sierraItemApi") + "?" + HarvesterConstants.SIERRA_API_UPDATED_DATE + "=["
+            + startDdate + "," + endDate + "]&" + HarvesterConstants.SIERRA_API_OFFSET + "="
+            + offset + "&" + HarvesterConstants.SIERRA_API_LIMIT + "=" + limit + "&"
+            + HarvesterConstants.SIERRA_API_FIELDS_PARAMETER + "="
+            + HarvesterConstants.SIERRA_API_FIELDS_VALUE;
 
     logger.info("Calling api - " + itemApiToCall);
 
-    Exchange templateResultExchange = template.send(itemApiToCall,
-        new Processor() {
-          @Override
-          public void process(Exchange httpHeaderExchange) throws Exception {
-            httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
-            httpHeaderExchange.getIn().setHeader("Authorization", "bearer " + token);
-          }
-        }
-        );
+    Exchange templateResultExchange = template.send(itemApiToCall, new Processor() {
+      @Override
+      public void process(Exchange httpHeaderExchange) throws Exception {
+        httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
+        httpHeaderExchange.getIn().setHeader(HarvesterConstants.SIERRA_API_HEADER_KEY_AUTHORIZATION,
+            HarvesterConstants.SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER + " " + token);
+      }
+    });
 
     return templateResultExchange;
   }
@@ -265,9 +218,8 @@ public class ItemIdUpdateHarvester implements Processor {
   private Map<String, Object> getResponseFromExchange(Exchange exchange) {
     Message out = exchange.getOut();
 
-    HttpOperationFailedException httpOperationFailedException = exchange.getException(
-        HttpOperationFailedException.class
-    );
+    HttpOperationFailedException httpOperationFailedException =
+        exchange.getException(HttpOperationFailedException.class);
 
     Integer responseCode = null;
     String apiResponse = null;

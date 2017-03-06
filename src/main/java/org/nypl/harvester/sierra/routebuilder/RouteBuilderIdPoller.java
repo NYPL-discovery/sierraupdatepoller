@@ -16,6 +16,7 @@ import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -27,29 +28,26 @@ public class RouteBuilderIdPoller extends RouteBuilder {
   private TokenProperties tokenProperties;
 
   @Autowired
+  private RetryTemplate retryTemplate;
+
+  @Autowired
   private ProducerTemplate template;
 
   @Override
   public void configure() throws Exception {
     from("scheduler:sierrapoller?delay=" + HarvesterConstants.POLL_DELAY + "&useFixedDelay=true")
-        //check redis to see if there is updatedDate key
-        .process(new CacheItemIdMonitor(template))
-        //send the updatedDatekey value to id harvester
+        // check redis to see if there is updatedDate key
+        .process(new CacheItemIdMonitor(retryTemplate))
+        // send the updatedDatekey value to id harvester
         // id harvester has to validate and then query for that until time now
         .process(new ItemIdUpdateHarvester(getToken(), template))
         // send ids to kinesis
-        .process(new StreamPoster(
-            template,
-            System.getenv("kinesisItemUpdateStream"),
-            new SierraItemUpdate()
-        ))
-        .process(new StreamPoster(
-            template,
-            System.getenv("kinesisItemRetrievalRequestStream"),
-            new SierraItemRetrievalRequest()
-        ))
+        .process(new StreamPoster(template, System.getenv("kinesisItemUpdateStream"),
+            new SierraItemUpdate()))
+        .process(new StreamPoster(template, System.getenv("kinesisItemRetrievalRequestStream"),
+            new SierraItemRetrievalRequest()))
         // update Kinesis with last checked time
-        .process(new CacheLastUpdatedTimeUpdater(template));
+        .process(new CacheLastUpdatedTimeUpdater());
   }
 
   public String getToken() throws SierraHarvesterException {
@@ -57,8 +55,8 @@ public class RouteBuilderIdPoller extends RouteBuilder {
       Date currentDate = new Date();
       currentDate.setMinutes(currentDate.getMinutes() + 5);
 
-      if (tokenProperties.getTokenExpiration() == null || !currentDate
-          .before(tokenProperties.getTokenExpiration())) {
+      if (tokenProperties.getTokenExpiration() == null
+          || !currentDate.before(tokenProperties.getTokenExpiration())) {
         logger.info("Requesting new nypl token");
 
         tokenProperties = generateNewTokenProperties();
@@ -77,11 +75,8 @@ public class RouteBuilderIdPoller extends RouteBuilder {
   }
 
   public TokenProperties generateNewTokenProperties() {
-    return new OAuth2Client(
-        System.getenv("accessTokenUri"),
-        System.getenv("clientId"),
-        System.getenv("clientSecret"),
-        System.getenv("grantType")
-    ).createAndGetTokenAccessProperties();
+    return new OAuth2Client(System.getenv("accessTokenUri"), System.getenv("clientId"),
+        System.getenv("clientSecret"), System.getenv("grantType"))
+            .createAndGetTokenAccessProperties();
   }
 }

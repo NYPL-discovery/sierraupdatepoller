@@ -34,8 +34,8 @@ public class OAuth2Client {
   }
 
   public OAuth2RestTemplate getOAuth2RestTemplate() {
-    OAuth2RestTemplate oAuth2RestTemplate = new OAuth2RestTemplate(
-        getClientCredentialsResourceDetails());
+    OAuth2RestTemplate oAuth2RestTemplate =
+        new OAuth2RestTemplate(getClientCredentialsResourceDetails());
 
     return oAuth2RestTemplate;
   }

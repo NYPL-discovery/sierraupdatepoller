@@ -3,14 +3,15 @@ package org.nypl.harvester.sierra.config;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
+
+import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.GenericToStringSerializer;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.retry.backoff.FixedBackOffPolicy;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 
 @Configuration
 public class BaseConfig {
@@ -18,33 +19,27 @@ public class BaseConfig {
   private static Logger logger = LoggerFactory.getLogger(BaseConfig.class);
 
   @Bean
-  JedisConnectionFactory jedisConnectionFactory() {
-    return new JedisConnectionFactory();
-  }
-
-  @Bean
-  RedisTemplate<String, Object> redisTemplate() {
-    final RedisTemplate<String, Object> template = new RedisTemplate<String, Object>();
-    template.setConnectionFactory(jedisConnectionFactory());
-    template.setKeySerializer(new StringRedisSerializer());
-    template.setHashValueSerializer(new GenericToStringSerializer<Object>(Object.class));
-    template.setValueSerializer(new GenericToStringSerializer<Object>(Object.class));
-
-    return template;
-  }
-
-  @Bean
   public AmazonKinesisClient getAmazonKinesisClient() {
-    AWSCredentials awsCredentials = new BasicAWSCredentials(
-        System.getenv("awsAccessKey"),
-        System.getenv("awsSecretKey")
-    );
+    AWSCredentials awsCredentials =
+        new BasicAWSCredentials(System.getenv("awsAccessKey"), System.getenv("awsSecretKey"));
 
     AmazonKinesisClient amazonKinesisClient = new AmazonKinesisClient(awsCredentials);
 
     logger.info("Configured Kinesis Client");
 
     return amazonKinesisClient;
+  }
+
+  @Bean
+  public RetryTemplate retryTemplate() {
+    RetryTemplate retryTemplate = new RetryTemplate();
+    FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
+    backOffPolicy.setBackOffPeriod(60000);
+    SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+    retryPolicy.setMaxAttempts(100);
+    retryTemplate.setBackOffPolicy(backOffPolicy);
+    retryTemplate.setRetryPolicy(retryPolicy);
+    return retryTemplate;
   }
 
 }
