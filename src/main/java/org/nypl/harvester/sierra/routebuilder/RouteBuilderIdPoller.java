@@ -74,9 +74,15 @@ public class RouteBuilderIdPoller extends RouteBuilder {
     }
   }
 
-  public TokenProperties generateNewTokenProperties() {
-    return new OAuth2Client(System.getenv("accessTokenUri"), System.getenv("clientId"),
-        System.getenv("clientSecret"), System.getenv("grantType"))
-            .createAndGetTokenAccessProperties();
+  public TokenProperties generateNewTokenProperties() throws SierraHarvesterException {
+    try {
+      return new OAuth2Client(System.getenv("accessTokenUri"), System.getenv("clientId"),
+          System.getenv("clientSecret"), System.getenv("grantType"))
+              .createAndGetTokenAccessProperties();
+    } catch (Exception e) {
+      logger.error("Error occurred while retrieving sierra token properties - ", e);
+      throw new SierraHarvesterException(
+          "Error occurred while retrieving sierra token properties - " + e.getMessage());
+    }
   }
 }

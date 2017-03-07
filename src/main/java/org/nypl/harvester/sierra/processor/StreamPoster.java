@@ -48,46 +48,52 @@ public class StreamPoster implements Processor {
   }
 
   private void sendToKinesis(List<Item> items) throws SierraHarvesterException {
-    Schema schema = AvroSerializer.getSchema(this.getStreamDataModel());
+    try {
+      Schema schema = AvroSerializer.getSchema(this.getStreamDataModel());
 
-    for (Item item : items) {
-      retryTemplate.execute(new RetryCallback<Exchange, SierraHarvesterException>() {
+      for (Item item : items) {
+        retryTemplate.execute(new RetryCallback<Exchange, SierraHarvesterException>() {
 
-        @Override
-        public Exchange doWithRetry(RetryContext context) throws SierraHarvesterException {
-          Exchange exchange = template.request(
-              "aws-kinesis://" + getStreamName() + "?amazonKinesisClient=#getAmazonKinesisClient",
-              new Processor() {
-                @Override
-                public void process(Exchange kinesisRequest) throws SierraHarvesterException {
-                  try {
-                    kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_PARTITION_KEY,
-                        UUID.randomUUID().toString());
-                    kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_SEQUENCE_NUMBER,
-                        System.currentTimeMillis());
+          @Override
+          public Exchange doWithRetry(RetryContext context) throws SierraHarvesterException {
+            Exchange exchange = template.request(
+                "aws-kinesis://" + getStreamName() + "?amazonKinesisClient=#getAmazonKinesisClient",
+                new Processor() {
+                  @Override
+                  public void process(Exchange kinesisRequest) throws SierraHarvesterException {
+                    try {
+                      kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_PARTITION_KEY,
+                          UUID.randomUUID().toString());
+                      kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_SEQUENCE_NUMBER,
+                          System.currentTimeMillis());
 
-                    kinesisRequest.getIn().setBody(AvroSerializer.encode(schema,
-                        StreamDataTranslator.translate(getStreamDataModel(), item)));
-                  } catch (Exception exception) {
-                    logger.error("Exception thrown encoding data", exception);
-                    throw new SierraHarvesterException("Error occurred while posting to stream");
+                      kinesisRequest.getIn().setBody(AvroSerializer.encode(schema,
+                          StreamDataTranslator.translate(getStreamDataModel(), item)));
+                    } catch (Exception exception) {
+                      logger.error("Exception thrown encoding data", exception);
+                      throw new SierraHarvesterException("Error occurred while posting to stream");
+                    }
                   }
-                }
-              });
+                });
 
-          if (exchange.isFailed()) {
-            logger.error("Error processing ProducerTemplate", exchange.getException());
+            if (exchange.isFailed()) {
+              logger.error("Error processing ProducerTemplate", exchange.getException());
 
-            throw new SierraHarvesterException(
-                "Error sending items to kinesis: " + exchange.getException().getMessage());
+              throw new SierraHarvesterException(
+                  "Error sending items to kinesis: " + exchange.getException().getMessage());
+            }
+            return exchange;
           }
-          return exchange;
-        }
-      });
+        });
 
+      }
+
+      logger.info("Sent " + items.size() + " items to Kinesis stream: " + getStreamName());
+    } catch (Exception e) {
+      logger.error("Error occurred while sending items to kinesis - ", e);
+      throw new SierraHarvesterException(
+          "Error occurred while sending items to kinesis - " + e.getMessage());
     }
-
-    logger.info("Sent " + items.size() + " items to Kinesis stream: " + getStreamName());
   }
 
   public String getStreamName() {

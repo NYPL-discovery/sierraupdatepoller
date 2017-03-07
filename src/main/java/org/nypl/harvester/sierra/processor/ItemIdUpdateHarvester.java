@@ -49,7 +49,7 @@ public class ItemIdUpdateHarvester implements Processor {
   }
 
   @Override
-  public void process(Exchange exchange) throws Exception {
+  public void process(Exchange exchange) throws SierraHarvesterException {
     try {
       String lastUpdatedDateTime = (String) exchange.getIn().getBody();
       lastUpdatedDateTime = validateLastUpdatedTime(lastUpdatedDateTime);
@@ -172,102 +172,130 @@ public class ItemIdUpdateHarvester implements Processor {
     }
   }
 
-  private List<Item> addItemsFromAPIResponse(Map<String, Object> apiResponse, List<Item> items) {
-    List<Map<String, Object>> entries =
-        (List<Map<String, Object>>) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_ENTRIES);
+  private List<Item> addItemsFromAPIResponse(Map<String, Object> apiResponse, List<Item> items)
+      throws SierraHarvesterException {
+    try {
+      List<Map<String, Object>> entries = (List<Map<String, Object>>) apiResponse
+          .get(HarvesterConstants.SIERRA_API_RESPONSE_ENTRIES);
 
-    for (Map<String, Object> entry : entries) {
-      Item item = new Item();
-      item.setId((String) entry.get(HarvesterConstants.SIERRA_API_RESPONSE_ID));
-      items.add(item);
+      for (Map<String, Object> entry : entries) {
+        Item item = new Item();
+        item.setId((String) entry.get(HarvesterConstants.SIERRA_API_RESPONSE_ID));
+        items.add(item);
+      }
+
+      return items;
+    } catch (Exception e) {
+      logger.error("Error occurred while processing items from sierra api response - ", e);
+      throw new SierraHarvesterException(
+          "Error while processing sierra items from sierra response - " + e.getMessage());
     }
-
-    return items;
   }
 
   private Map<String, Object> getResultsFromSierra(String startDdate, String endDate, int offset,
       int limit) throws SierraHarvesterException {
-    Exchange apiResponse = getExchangeWithAPIResponse(startDdate, endDate, offset, limit);
+    try {
+      Exchange apiResponse = getExchangeWithAPIResponse(startDdate, endDate, offset, limit);
 
-    Map<String, Object> response = getResponseFromExchange(apiResponse);
+      Map<String, Object> response = getResponseFromExchange(apiResponse);
 
-    if ((Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE) == 401) {
-      token = new RouteBuilderIdPoller().generateNewTokenProperties().getTokenValue();
+      if ((Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE) == 401) {
+        token = new RouteBuilderIdPoller().generateNewTokenProperties().getTokenValue();
 
-      logger.info("Token expired. Got a new token - " + token);
+        logger.info("Token expired. Got a new token - " + token);
 
-      apiResponse = getExchangeWithAPIResponse(startDdate, endDate, offset, limit);
+        apiResponse = getExchangeWithAPIResponse(startDdate, endDate, offset, limit);
 
-      response = getResponseFromExchange(apiResponse);
+        response = getResponseFromExchange(apiResponse);
+      }
+
+      return response;
+    } catch (Exception e) {
+      logger.error("Error occurred while getting results from sierra - ", e);
+      throw new SierraHarvesterException(
+          "Error while getting results from sierra - " + e.getMessage());
     }
 
-    return response;
   }
 
   private Exchange getExchangeWithAPIResponse(String startDdate, String endDate, int offset,
       int limit) throws SierraHarvesterException {
-    String itemApiToCall =
-        System.getenv("sierraItemApi") + "?" + HarvesterConstants.SIERRA_API_UPDATED_DATE + "=["
-            + startDdate + "," + endDate + "]&" + HarvesterConstants.SIERRA_API_OFFSET + "="
-            + offset + "&" + HarvesterConstants.SIERRA_API_LIMIT + "=" + limit + "&"
-            + HarvesterConstants.SIERRA_API_FIELDS_PARAMETER + "="
-            + HarvesterConstants.SIERRA_API_FIELDS_VALUE;
+    try {
+      String itemApiToCall =
+          System.getenv("sierraItemApi") + "?" + HarvesterConstants.SIERRA_API_UPDATED_DATE + "=["
+              + startDdate + "," + endDate + "]&" + HarvesterConstants.SIERRA_API_OFFSET + "="
+              + offset + "&" + HarvesterConstants.SIERRA_API_LIMIT + "=" + limit + "&"
+              + HarvesterConstants.SIERRA_API_FIELDS_PARAMETER + "="
+              + HarvesterConstants.SIERRA_API_FIELDS_VALUE;
 
-    logger.info("Calling api - " + itemApiToCall);
+      logger.info("Calling api - " + itemApiToCall);
 
-    Exchange templateResultExchange =
-        retryTemplate.execute(new RetryCallback<Exchange, SierraHarvesterException>() {
+      Exchange templateResultExchange =
+          retryTemplate.execute(new RetryCallback<Exchange, SierraHarvesterException>() {
 
-          @Override
-          public Exchange doWithRetry(RetryContext context) throws SierraHarvesterException {
-            try {
-              return template.request(itemApiToCall, new Processor() {
-                @Override
-                public void process(Exchange httpHeaderExchange) throws Exception {
-                  httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
-                  httpHeaderExchange.getIn().setHeader(
-                      HarvesterConstants.SIERRA_API_HEADER_KEY_AUTHORIZATION,
-                      HarvesterConstants.SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER + " " + token);
-                }
-              });
-            } catch (Exception e) {
-              logger.error("Error occurred while calling sierra api - ", e);
-              throw new SierraHarvesterException(
-                  "Error occurred while calling sierra item api - " + e.getMessage());
+            @Override
+            public Exchange doWithRetry(RetryContext context) throws SierraHarvesterException {
+              try {
+                return template.request(itemApiToCall, new Processor() {
+                  @Override
+                  public void process(Exchange httpHeaderExchange) throws Exception {
+                    httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
+                    httpHeaderExchange.getIn().setHeader(
+                        HarvesterConstants.SIERRA_API_HEADER_KEY_AUTHORIZATION,
+                        HarvesterConstants.SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER + " "
+                            + token);
+                  }
+                });
+              } catch (Exception e) {
+                logger.error("Error occurred while calling sierra api - ", e);
+                throw new SierraHarvesterException(
+                    "Error occurred while calling sierra item api - " + e.getMessage());
+              }
             }
-          }
 
-        });
+          });
 
-    return templateResultExchange;
-  }
-
-  private Map<String, Object> getResponseFromExchange(Exchange exchange) {
-    Message out = exchange.getOut();
-
-    HttpOperationFailedException httpOperationFailedException =
-        exchange.getException(HttpOperationFailedException.class);
-
-    Integer responseCode = null;
-    String apiResponse = null;
-
-    if (httpOperationFailedException != null) {
-      responseCode = httpOperationFailedException.getStatusCode();
-      apiResponse = httpOperationFailedException.getResponseBody();
-    } else {
-      responseCode = out.getHeader(Exchange.HTTP_RESPONSE_CODE, Integer.class);
-      apiResponse = out.getBody(String.class);
+      return templateResultExchange;
+    } catch (Exception e) {
+      logger.error("Error occurred while calling sierra api - ", e);
+      throw new SierraHarvesterException("Error while calling sierra api - " + e.getMessage());
     }
 
-    logger.info("Sierra api response code - " + responseCode);
-    logger.info("Sierra api response body - " + apiResponse);
+  }
 
-    Map<String, Object> response = new HashMap<>();
+  private Map<String, Object> getResponseFromExchange(Exchange exchange)
+      throws SierraHarvesterException {
+    try {
+      Message out = exchange.getOut();
 
-    response.put(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE, responseCode);
-    response.put(HarvesterConstants.SIERRA_API_RESPONSE_BODY, apiResponse);
+      HttpOperationFailedException httpOperationFailedException =
+          exchange.getException(HttpOperationFailedException.class);
 
-    return response;
+      Integer responseCode = null;
+      String apiResponse = null;
+
+      if (httpOperationFailedException != null) {
+        responseCode = httpOperationFailedException.getStatusCode();
+        apiResponse = httpOperationFailedException.getResponseBody();
+      } else {
+        responseCode = out.getHeader(Exchange.HTTP_RESPONSE_CODE, Integer.class);
+        apiResponse = out.getBody(String.class);
+      }
+
+      logger.info("Sierra api response code - " + responseCode);
+      logger.info("Sierra api response body - " + apiResponse);
+
+      Map<String, Object> response = new HashMap<>();
+
+      response.put(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE, responseCode);
+      response.put(HarvesterConstants.SIERRA_API_RESPONSE_BODY, apiResponse);
+
+      return response;
+    } catch (Exception e) {
+      logger.error("Error occurred while processing camel exchange to get sierra response - ", e);
+      throw new SierraHarvesterException(
+          "Error while trying to get sierra response - " + e.getMessage());
+    }
   }
 
   private String validateLastUpdatedTime(String lastUpdatedTime) {

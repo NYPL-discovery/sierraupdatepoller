@@ -25,19 +25,24 @@ public class CacheLastUpdatedTimeUpdater implements Processor {
 
   @Override
   public void process(Exchange exchange) throws SierraHarvesterException {
-    Map<String, Object> exchangeContents = exchange.getIn().getBody(Map.class);
+    try {
+      Map<String, Object> exchangeContents = exchange.getIn().getBody(Map.class);
 
-    String timeToUpdateInCache =
-        (String) exchangeContents.get(HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME);
-    retryTemplate.execute(new RetryCallback<Boolean, SierraHarvesterException>() {
+      String timeToUpdateInCache =
+          (String) exchangeContents.get(HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME);
+      retryTemplate.execute(new RetryCallback<Boolean, SierraHarvesterException>() {
 
-      @Override
-      public Boolean doWithRetry(RetryContext context) throws SierraHarvesterException {
-        return updateCache(timeToUpdateInCache);
-      }
+        @Override
+        public Boolean doWithRetry(RetryContext context) throws SierraHarvesterException {
+          return updateCache(timeToUpdateInCache);
+        }
 
-    });
-
+      });
+    } catch (Exception e) {
+      logger.error("Error occurred while updating redis with the last updated time - ", e);
+      throw new SierraHarvesterException(
+          "Error occurred while updating redis with the last updated time - " + e.getMessage());
+    }
   }
 
   private Boolean updateCache(String timeToUpdateInCache) throws SierraHarvesterException {
