@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TimeZone;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
@@ -87,15 +88,19 @@ public class ItemIdUpdateHarvester implements Processor {
         Map<String, Object> apiResponse = new ObjectMapper().readValue(
             (String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
 
-        total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
+        Optional<Integer> optionalTotal = Optional
+            .ofNullable((Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL));
 
-        items = addItemsFromAPIResponse(apiResponse, items);
+        if (optionalTotal.isPresent()) {
+          total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
+          items = addItemsFromAPIResponse(apiResponse, items);
 
-        if (total < limit) {
-          return items;
-        } else {
-          return getAllItemsForTimeRange(response, total, items, limit, offset, startTime,
-              newUpdatedTime);
+          if (total < limit) {
+            return items;
+          } else {
+            return getAllItemsForTimeRange(response, total, items, limit, offset, startTime,
+                newUpdatedTime);
+          }
         }
       }
 
