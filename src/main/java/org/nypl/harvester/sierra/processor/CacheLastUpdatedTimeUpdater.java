@@ -3,7 +3,6 @@ package org.nypl.harvester.sierra.processor;
 import java.util.Map;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
-import org.apache.camel.ProducerTemplate;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
@@ -15,11 +14,11 @@ import org.springframework.retry.support.RetryTemplate;
 import redis.clients.jedis.Jedis;
 
 public class CacheLastUpdatedTimeUpdater implements Processor {
-  
+
   private RetryTemplate retryTemplate;
 
   private static Logger logger = LoggerFactory.getLogger(CacheLastUpdatedTimeUpdater.class);
-  
+
   public CacheLastUpdatedTimeUpdater(RetryTemplate retryTemplate) {
     this.retryTemplate = retryTemplate;
   }
@@ -36,9 +35,9 @@ public class CacheLastUpdatedTimeUpdater implements Processor {
       public Boolean doWithRetry(RetryContext context) throws SierraHarvesterException {
         return updateCache(timeToUpdateInCache);
       }
-      
+
     });
-    
+
   }
 
   private Boolean updateCache(String timeToUpdateInCache) throws SierraHarvesterException {

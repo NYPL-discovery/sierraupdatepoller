@@ -28,10 +28,11 @@ public class StreamPoster implements Processor {
   private String streamName;
 
   private StreamDataModel streamDataModel;
-  
+
   private RetryTemplate retryTemplate;
 
-  public StreamPoster(ProducerTemplate template, String streamName, StreamDataModel streamData, RetryTemplate retryTemplate) {
+  public StreamPoster(ProducerTemplate template, String streamName, StreamDataModel streamData,
+      RetryTemplate retryTemplate) {
     this.template = template;
     this.streamName = streamName;
     this.streamDataModel = streamData;
@@ -83,7 +84,7 @@ public class StreamPoster implements Processor {
           return exchange;
         }
       });
-      
+
     }
 
     logger.info("Sent " + items.size() + " items to Kinesis stream: " + getStreamName());

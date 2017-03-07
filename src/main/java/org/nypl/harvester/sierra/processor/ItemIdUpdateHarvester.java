@@ -37,10 +37,11 @@ public class ItemIdUpdateHarvester implements Processor {
   private String token;
 
   private String newUpdatedTime;
-  
+
   private RetryTemplate retryTemplate;
 
-  public ItemIdUpdateHarvester(String token, ProducerTemplate producerTemplate, RetryTemplate retryTemplate) {
+  public ItemIdUpdateHarvester(String token, ProducerTemplate producerTemplate,
+      RetryTemplate retryTemplate) {
     this.token = token;
     this.template = producerTemplate;
     this.retryTemplate = retryTemplate;
@@ -209,26 +210,29 @@ public class ItemIdUpdateHarvester implements Processor {
 
     logger.info("Calling api - " + itemApiToCall);
 
-    Exchange templateResultExchange = retryTemplate.execute(new RetryCallback<Exchange, SierraHarvesterException>() {
+    Exchange templateResultExchange =
+        retryTemplate.execute(new RetryCallback<Exchange, SierraHarvesterException>() {
 
-      @Override
-      public Exchange doWithRetry(RetryContext context) throws SierraHarvesterException {
-        try{
-          return template.request(itemApiToCall, new Processor() {
-            @Override
-            public void process(Exchange httpHeaderExchange) throws Exception {
-              httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
-              httpHeaderExchange.getIn().setHeader(HarvesterConstants.SIERRA_API_HEADER_KEY_AUTHORIZATION,
-                  HarvesterConstants.SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER + " " + token);
+          @Override
+          public Exchange doWithRetry(RetryContext context) throws SierraHarvesterException {
+            try {
+              return template.request(itemApiToCall, new Processor() {
+                @Override
+                public void process(Exchange httpHeaderExchange) throws Exception {
+                  httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
+                  httpHeaderExchange.getIn().setHeader(
+                      HarvesterConstants.SIERRA_API_HEADER_KEY_AUTHORIZATION,
+                      HarvesterConstants.SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER + " " + token);
+                }
+              });
+            } catch (Exception e) {
+              logger.error("Error occurred while calling sierra api - ", e);
+              throw new SierraHarvesterException(
+                  "Error occurred while calling sierra item api - " + e.getMessage());
             }
-          });
-        }catch(Exception e){
-          logger.error("Error occurred while calling sierra api - ", e);
-          throw new SierraHarvesterException("Error occurred while calling sierra item api - " + e.getMessage());
-        }
-      }
-      
-    });
+          }
+
+        });
 
     return templateResultExchange;
   }
