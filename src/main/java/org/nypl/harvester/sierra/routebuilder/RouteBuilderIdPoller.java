@@ -1,6 +1,9 @@
 package org.nypl.harvester.sierra.routebuilder;
 
 import java.util.Date;
+
+import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.RouteBuilder;
 import org.nypl.harvester.sierra.api.utils.OAuth2Client;
@@ -35,6 +38,14 @@ public class RouteBuilderIdPoller extends RouteBuilder {
 
   @Override
   public void configure() throws Exception {
+    onException(SierraHarvesterException.class).handled(true).process(new Processor() {
+
+      @Override
+      public void process(Exchange exchange) throws Exception {
+        logger.error("FATAL ERROR OCCURRED - Component: sierraitemupdatepoller");
+      }
+    });
+
     from("scheduler:sierrapoller?delay=" + HarvesterConstants.POLL_DELAY + "&useFixedDelay=true")
         // check redis to see if there is updatedDate key
         .process(new CacheItemIdMonitor(retryTemplate))
