@@ -68,7 +68,7 @@ public class RouteBuilderIdPoller extends RouteBuilder {
 
       if (tokenProperties.getTokenExpiration() == null
           || !currentDate.before(tokenProperties.getTokenExpiration())) {
-        logger.info("Requesting new nypl token");
+        logger.info("Requesting new token");
 
         tokenProperties = generateNewTokenProperties();
         return tokenProperties.getTokenValue();
