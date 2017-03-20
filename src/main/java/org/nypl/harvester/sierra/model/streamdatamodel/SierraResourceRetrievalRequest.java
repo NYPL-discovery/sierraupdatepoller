@@ -1,16 +1,16 @@
 package org.nypl.harvester.sierra.model.streamdatamodel;
 
-import org.nypl.harvester.sierra.model.Item;
+import org.nypl.harvester.sierra.model.Resource;
 import org.nypl.harvester.sierra.model.StreamDataModel;
 
-public class SierraItemUpdate extends StreamDataModel {
+public class SierraResourceRetrievalRequest extends StreamDataModel {
   private String id;
 
   @Override
   public boolean translateToStreamData(Object data) {
-    Item item = (Item) data;
+    Resource resource = (Resource) data;
 
-    setId(item.getId());
+    setId(resource.getId());
 
     return true;
   }

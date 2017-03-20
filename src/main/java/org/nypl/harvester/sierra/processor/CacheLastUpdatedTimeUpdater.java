@@ -3,6 +3,7 @@ package org.nypl.harvester.sierra.processor;
 import java.util.Map;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
+import org.nypl.harvester.sierra.config.EnvironmentConfig;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
@@ -39,22 +40,25 @@ public class CacheLastUpdatedTimeUpdater implements Processor {
 
       });
     } catch (Exception e) {
-      logger.error("Error occurred while updating redis with the last updated time - ", e);
-      throw new SierraHarvesterException(
-          "Error occurred while updating redis with the last updated time - " + e.getMessage());
+      logger.error(HarvesterConstants.getResource()
+          + " : Error occurred while updating redis with the last updated time - ", e);
+      throw new SierraHarvesterException(HarvesterConstants.getResource()
+          + " : Error occurred while updating redis with the last updated time - "
+          + e.getMessage());
     }
   }
 
   private Boolean updateCache(String timeToUpdateInCache) throws SierraHarvesterException {
     Jedis jedis = null;
     try {
-      jedis = new Jedis(System.getenv("redisHost"), Integer.parseInt(System.getenv("redisPort")));
+      jedis = new Jedis(EnvironmentConfig.redisHost, EnvironmentConfig.redisPort);
       jedis.set(HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME, timeToUpdateInCache);
       return true;
     } catch (Exception e) {
-      logger.error("Error occurred while getting last updated time from redis server - ", e);
-      throw new SierraHarvesterException(
-          "Error occurred while getting last updated time from redis server");
+      logger.error(HarvesterConstants.getResource()
+          + " : Error occurred while getting last updated time from redis server - ", e);
+      throw new SierraHarvesterException(HarvesterConstants.getResource()
+          + " : Error occurred while getting last updated time from redis server");
     } finally {
       jedis.close();
     }

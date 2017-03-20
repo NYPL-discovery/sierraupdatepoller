@@ -8,11 +8,19 @@ import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.reflect.ReflectData;
 import org.apache.avro.reflect.ReflectDatumWriter;
+import org.nypl.harvester.sierra.config.EnvironmentConfig;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
+import org.nypl.harvester.sierra.utils.HarvesterConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AvroSerializer {
+
+  private static Logger logger = LoggerFactory.getLogger(AvroSerializer.class);
+
   public static Schema getSchema(Object object) {
     return ReflectData.get().getSchema(object.getClass());
   }
@@ -25,13 +33,16 @@ public class AvroSerializer {
     try {
       userDatumWriter.write(object, encoder);
     } catch (IOException e) {
+      logger.error(HarvesterConstants.getResource() + ": Error occurred while encoding in avro - ",
+          e);
       throw new SierraHarvesterException("Unable to encode object as Avro: " + e.getMessage());
     }
 
     try {
       encoder.flush();
     } catch (IOException e) {
-      throw new SierraHarvesterException("Unable to flush Avro object: " + e.getMessage());
+      throw new SierraHarvesterException(
+          HarvesterConstants.getResource() + ": Unable to flush Avro object: " + e.getMessage());
     }
 
     return outputStream.toByteArray();

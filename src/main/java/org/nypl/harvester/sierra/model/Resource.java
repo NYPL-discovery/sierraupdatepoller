@@ -1,6 +1,6 @@
 package org.nypl.harvester.sierra.model;
 
-public class Item {
+public class Resource {
 
   private String id;
 
