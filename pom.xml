@@ -4,11 +4,11 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>org.nypl.harvester</groupId>
-	<artifactId>sierraitemupdatepoller</artifactId>
+	<artifactId>sierraupdatepoller</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>sierraitemupdatepoller</name>
+	<name>sierraupdatepoller</name>
 	<description></description>
 
 	<parent>
