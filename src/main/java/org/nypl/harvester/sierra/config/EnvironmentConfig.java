@@ -23,8 +23,5 @@ public class EnvironmentConfig {
 
   public static String grantType = System.getenv("grantType");
 
-  public static String awsAccessKey = System.getenv("awsAccessKey");
-
-  public static String awsSecretKey = System.getenv("awsSecretKey");
-
+  public static String pollDelay = System.getenv("pollDelay");
 }

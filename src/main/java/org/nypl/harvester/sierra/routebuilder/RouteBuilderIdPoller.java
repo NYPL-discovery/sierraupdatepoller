@@ -48,7 +48,7 @@ public class RouteBuilderIdPoller extends RouteBuilder {
       }
     });
 
-    from("scheduler:sierrapoller?delay=" + HarvesterConstants.POLL_DELAY + "&useFixedDelay=true")
+    from("scheduler:sierrapoller?delay=" + EnvironmentConfig.pollDelay + "&useFixedDelay=true")
         // check redis to see if there is updatedDate key
         .process(new CacheResourceIdMonitor(retryTemplate))
         // send the updatedDatekey value to id harvester
