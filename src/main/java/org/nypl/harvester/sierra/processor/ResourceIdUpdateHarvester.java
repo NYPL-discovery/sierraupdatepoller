@@ -57,7 +57,7 @@ public class ResourceIdUpdateHarvester implements Processor {
 
       Map<String, Object> exchangeContents = new HashMap<>();
 
-      exchangeContents.put(HarvesterConstants.APP_RESOURES_LIST,
+      exchangeContents.put(HarvesterConstants.APP_RESOURCES_LIST,
           iterateToGetResourceIds(lastUpdatedDateTime));
 
       exchangeContents.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME, newUpdatedTime);

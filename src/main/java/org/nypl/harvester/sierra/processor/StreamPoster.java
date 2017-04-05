@@ -43,7 +43,7 @@ public class StreamPoster implements Processor {
   public void process(Exchange exchange) throws SierraHarvesterException {
     Map<String, Object> exchangeContents = exchange.getIn().getBody(Map.class);
     List<Resource> resources =
-        (List<Resource>) exchangeContents.get(HarvesterConstants.APP_RESOURES_LIST);
+        (List<Resource>) exchangeContents.get(HarvesterConstants.APP_RESOURCES_LIST);
 
     sendToKinesis(resources);
   }
