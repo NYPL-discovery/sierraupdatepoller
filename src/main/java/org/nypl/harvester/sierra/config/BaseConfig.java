@@ -1,10 +1,8 @@
 package org.nypl.harvester.sierra.config;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 
-import org.nypl.harvester.sierra.exception.SierraHarvesterException;
+import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -20,12 +18,9 @@ public class BaseConfig {
 
   @Bean
   public AmazonKinesisClient getAmazonKinesisClient() {
-    AWSCredentials awsCredentials =
-        new BasicAWSCredentials(System.getenv("awsAccessKey"), System.getenv("awsSecretKey"));
+    AmazonKinesisClient amazonKinesisClient = new AmazonKinesisClient();
 
-    AmazonKinesisClient amazonKinesisClient = new AmazonKinesisClient(awsCredentials);
-
-    logger.info("Configured Kinesis Client");
+    logger.info(HarvesterConstants.getResource() + " : Configured Kinesis Client");
 
     return amazonKinesisClient;
   }

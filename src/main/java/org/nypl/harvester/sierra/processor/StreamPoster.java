@@ -10,7 +10,7 @@ import org.apache.camel.ProducerTemplate;
 import org.nypl.harvester.sierra.api.utils.AvroSerializer;
 import org.nypl.harvester.sierra.api.utils.StreamDataTranslator;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
-import org.nypl.harvester.sierra.model.Item;
+import org.nypl.harvester.sierra.model.Resource;
 import org.nypl.harvester.sierra.model.StreamDataModel;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
@@ -42,16 +42,17 @@ public class StreamPoster implements Processor {
   @Override
   public void process(Exchange exchange) throws SierraHarvesterException {
     Map<String, Object> exchangeContents = exchange.getIn().getBody(Map.class);
-    List<Item> items = (List<Item>) exchangeContents.get(HarvesterConstants.APP_ITEMS_LIST);
+    List<Resource> resources =
+        (List<Resource>) exchangeContents.get(HarvesterConstants.APP_RESOURCES_LIST);
 
-    sendToKinesis(items);
+    sendToKinesis(resources);
   }
 
-  private void sendToKinesis(List<Item> items) throws SierraHarvesterException {
+  private void sendToKinesis(List<Resource> resources) throws SierraHarvesterException {
     try {
       Schema schema = AvroSerializer.getSchema(this.getStreamDataModel());
 
-      for (Item item : items) {
+      for (Resource resource : resources) {
         retryTemplate.execute(new RetryCallback<Exchange, SierraHarvesterException>() {
 
           @Override
@@ -68,19 +69,25 @@ public class StreamPoster implements Processor {
                           System.currentTimeMillis());
 
                       kinesisRequest.getIn().setBody(AvroSerializer.encode(schema,
-                          StreamDataTranslator.translate(getStreamDataModel(), item)));
+                          StreamDataTranslator.translate(getStreamDataModel(), resource)));
                     } catch (Exception exception) {
-                      logger.error("Exception thrown encoding data", exception);
-                      throw new SierraHarvesterException("Error occurred while posting to stream");
+                      logger.error(
+                          HarvesterConstants.getResource() + " : Exception thrown encoding data",
+                          exception);
+                      throw new SierraHarvesterException(HarvesterConstants.getResource()
+                          + " : Error occurred while posting to stream");
                     }
                   }
                 });
 
             if (exchange.isFailed()) {
-              logger.error("Error processing ProducerTemplate", exchange.getException());
+              logger.error(
+                  HarvesterConstants.getResource() + " : Error processing ProducerTemplate",
+                  exchange.getException());
 
               throw new SierraHarvesterException(
-                  "Error sending items to kinesis: " + exchange.getException().getMessage());
+                  HarvesterConstants.getResource() + " : Error sending resources to kinesis: "
+                      + exchange.getException().getMessage());
             }
             return exchange;
           }
@@ -88,11 +95,13 @@ public class StreamPoster implements Processor {
 
       }
 
-      logger.info("Sent " + items.size() + " items to Kinesis stream: " + getStreamName());
+      logger.info(HarvesterConstants.getResource() + " : Sent " + resources.size()
+          + " resources to Kinesis stream: " + getStreamName());
     } catch (Exception e) {
-      logger.error("Error occurred while sending items to kinesis - ", e);
-      throw new SierraHarvesterException(
-          "Error occurred while sending items to kinesis - " + e.getMessage());
+      logger.error(HarvesterConstants.getResource()
+          + " : Error occurred while sending resources to kinesis - ", e);
+      throw new SierraHarvesterException(HarvesterConstants.getResource()
+          + " : Error occurred while sending resources to kinesis - " + e.getMessage());
     }
   }
 

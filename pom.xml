@@ -4,11 +4,11 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>org.nypl.harvester</groupId>
-	<artifactId>sierraitemupdatepoller</artifactId>
+	<artifactId>sierraupdatepoller</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>sierraitemupdatepoller</name>
+	<name>sierraupdatepoller</name>
 	<description></description>
 
 	<parent>
@@ -74,6 +74,15 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+	<!--		<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.18.1</version>
+				<configuration>
+					<skipTests>true</skipTests>
+				</configuration>
+			</plugin>
+	-->
 		</plugins>
 	</build>
 

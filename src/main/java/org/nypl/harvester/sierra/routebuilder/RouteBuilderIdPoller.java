@@ -8,12 +8,13 @@ import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.RouteBuilder;
 import org.nypl.harvester.sierra.api.utils.OAuth2Client;
 import org.nypl.harvester.sierra.api.utils.TokenProperties;
+import org.nypl.harvester.sierra.config.EnvironmentConfig;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
-import org.nypl.harvester.sierra.model.streamdatamodel.SierraItemRetrievalRequest;
-import org.nypl.harvester.sierra.model.streamdatamodel.SierraItemUpdate;
-import org.nypl.harvester.sierra.processor.CacheItemIdMonitor;
+import org.nypl.harvester.sierra.model.streamdatamodel.SierraResourceRetrievalRequest;
+import org.nypl.harvester.sierra.model.streamdatamodel.SierraResourceUpdate;
+import org.nypl.harvester.sierra.processor.CacheResourceIdMonitor;
 import org.nypl.harvester.sierra.processor.CacheLastUpdatedTimeUpdater;
-import org.nypl.harvester.sierra.processor.ItemIdUpdateHarvester;
+import org.nypl.harvester.sierra.processor.ResourceIdUpdateHarvester;
 import org.nypl.harvester.sierra.processor.StreamPoster;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
@@ -42,21 +43,22 @@ public class RouteBuilderIdPoller extends RouteBuilder {
 
       @Override
       public void process(Exchange exchange) throws Exception {
-        logger.error("FATAL ERROR OCCURRED - Component: sierraitemupdatepoller");
+        logger.error(HarvesterConstants.getResource()
+            + " : FATAL ERROR OCCURRED - Component: sierraupdatepoller");
       }
     });
 
-    from("scheduler:sierrapoller?delay=" + HarvesterConstants.POLL_DELAY + "&useFixedDelay=true")
+    from("scheduler:sierrapoller?delay=" + EnvironmentConfig.pollDelay + "&useFixedDelay=true")
         // check redis to see if there is updatedDate key
-        .process(new CacheItemIdMonitor(retryTemplate))
+        .process(new CacheResourceIdMonitor(retryTemplate))
         // send the updatedDatekey value to id harvester
         // id harvester has to validate and then query for that until time now
-        .process(new ItemIdUpdateHarvester(getToken(), template, retryTemplate))
+        .process(new ResourceIdUpdateHarvester(getToken(), template, retryTemplate))
         // send ids to kinesis
-        .process(new StreamPoster(template, System.getenv("kinesisItemUpdateStream"),
-            new SierraItemUpdate(), retryTemplate))
-        .process(new StreamPoster(template, System.getenv("kinesisItemRetrievalRequestStream"),
-            new SierraItemRetrievalRequest(), retryTemplate))
+        .process(new StreamPoster(template, EnvironmentConfig.kinesisUpdateStream,
+            new SierraResourceUpdate(), retryTemplate))
+        .process(new StreamPoster(template, EnvironmentConfig.kinesisResourceRetrievalRequestStream,
+            new SierraResourceRetrievalRequest(), retryTemplate))
         // update Kinesis with last checked time
         .process(new CacheLastUpdatedTimeUpdater(retryTemplate));
   }
@@ -68,32 +70,35 @@ public class RouteBuilderIdPoller extends RouteBuilder {
 
       if (tokenProperties.getTokenExpiration() == null
           || !currentDate.before(tokenProperties.getTokenExpiration())) {
-        logger.info("Requesting new token");
+        logger.info(HarvesterConstants.getResource() + " : Requesting new token");
 
         tokenProperties = generateNewTokenProperties();
         return tokenProperties.getTokenValue();
       }
 
-      logger.info("Token expires - " + tokenProperties.getTokenExpiration());
+      logger.info(HarvesterConstants.getResource() + " : Token expires - "
+          + tokenProperties.getTokenExpiration());
       logger.info(tokenProperties.getTokenValue());
 
       return tokenProperties.getTokenValue();
     } catch (Exception e) {
-      logger.error("Exception caught - ", e);
+      logger.error(HarvesterConstants.getResource() + " : Exception caught - ", e);
 
-      throw new SierraHarvesterException("Exception occurred while getting token");
+      throw new SierraHarvesterException(
+          HarvesterConstants.getResource() + " : Exception occurred while getting token");
     }
   }
 
   public TokenProperties generateNewTokenProperties() throws SierraHarvesterException {
     try {
-      return new OAuth2Client(System.getenv("accessTokenUri"), System.getenv("clientId"),
-          System.getenv("clientSecret"), System.getenv("grantType"))
+      return new OAuth2Client(EnvironmentConfig.accessTokenUri, EnvironmentConfig.clientId,
+          EnvironmentConfig.clientSecret, EnvironmentConfig.grantType)
               .createAndGetTokenAccessProperties();
     } catch (Exception e) {
-      logger.error("Error occurred while retrieving sierra token properties - ", e);
-      throw new SierraHarvesterException(
-          "Error occurred while retrieving sierra token properties - " + e.getMessage());
+      logger.error(HarvesterConstants.getResource()
+          + " : Error occurred while retrieving sierra token properties - ", e);
+      throw new SierraHarvesterException(HarvesterConstants.getResource()
+          + " : Error occurred while retrieving sierra token properties - " + e.getMessage());
     }
   }
 }

@@ -1,5 +1,6 @@
 package org.nypl.harvester.sierra.exception;
 
+import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,6 +11,7 @@ public class SierraHarvesterException extends Exception {
   private static Logger logger = LoggerFactory.getLogger(SierraHarvesterException.class);
 
   public SierraHarvesterException(String message) {
-    logger.error("SierraHarvesterException occurred - " + message);
+    logger.error(
+        HarvesterConstants.getResource() + " : SierraHarvesterException occurred - " + message);
   }
 }

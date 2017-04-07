@@ -2,6 +2,7 @@ package org.nypl.harvester.sierra.api.utils;
 
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.model.StreamDataModel;
+import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,8 +17,8 @@ public class StreamDataTranslator {
 
       return newStreamData;
     } catch (Exception exception) {
-      throw new SierraHarvesterException(
-          "Unable to translate object to stream data: " + exception.getMessage());
+      throw new SierraHarvesterException(HarvesterConstants.getResource()
+          + " : Unable to translate object to stream data: " + exception.getMessage());
     }
   }
 }
