@@ -19,7 +19,7 @@ import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
 import org.springframework.retry.support.RetryTemplate;
 
-public class StreamPoster implements ResourcePoster{
+public class StreamPoster implements ResourcePoster {
 
   private static Logger logger = LoggerFactory.getLogger(StreamPoster.class);
 
@@ -29,15 +29,15 @@ public class StreamPoster implements ResourcePoster{
 
   private RetryTemplate retryTemplate;
 
-  public StreamPoster(String streamName, StreamDataModel streamData,
-      RetryTemplate retryTemplate) {
+  public StreamPoster(String streamName, StreamDataModel streamData, RetryTemplate retryTemplate) {
     this.streamName = streamName;
     this.streamDataModel = streamData;
     this.retryTemplate = retryTemplate;
   }
-  
+
   @Override
-  public void postResources(ProducerTemplate template, List<Resource> resources) throws SierraHarvesterException {
+  public void postResources(ProducerTemplate template, List<Resource> resources)
+      throws SierraHarvesterException {
     try {
       Schema schema = AvroSerializer.getSchema(this.getStreamDataModel());
 
@@ -46,9 +46,9 @@ public class StreamPoster implements ResourcePoster{
 
           @Override
           public Exchange doWithRetry(RetryContext context) throws SierraHarvesterException {
-            Exchange exchange = template.request(
-                "aws-kinesis://" + getStreamName() + "?amazonKinesisClient=#getAmazonKinesisClient",
-                new Processor() {
+            Exchange exchange =
+                template.request("aws-kinesis://" + getStreamName()
+                    + "?amazonKinesisClient=#getAmazonKinesisClient", new Processor() {
                   @Override
                   public void process(Exchange kinesisRequest) throws SierraHarvesterException {
                     try {
@@ -57,12 +57,12 @@ public class StreamPoster implements ResourcePoster{
                       kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_SEQUENCE_NUMBER,
                           System.currentTimeMillis());
 
-                      kinesisRequest.getIn().setBody(AvroSerializer.encode(schema,
-                          StreamDataTranslator.translate(getStreamDataModel(), resource)));
+                      kinesisRequest.getIn().setBody(
+                          AvroSerializer.encode(schema,
+                              StreamDataTranslator.translate(getStreamDataModel(), resource)));
                     } catch (Exception exception) {
-                      logger.error(
-                          HarvesterConstants.getResource() + " : Exception thrown encoding data",
-                          exception);
+                      logger.error(HarvesterConstants.getResource()
+                          + " : Exception thrown encoding data", exception);
                       throw new SierraHarvesterException(HarvesterConstants.getResource()
                           + " : Error occurred while posting to stream");
                     }
@@ -70,13 +70,12 @@ public class StreamPoster implements ResourcePoster{
                 });
 
             if (exchange.isFailed()) {
-              logger.error(
-                  HarvesterConstants.getResource() + " : Error processing ProducerTemplate",
-                  exchange.getException());
+              logger.error(HarvesterConstants.getResource()
+                  + " : Error processing ProducerTemplate", exchange.getException());
 
-              throw new SierraHarvesterException(
-                  HarvesterConstants.getResource() + " : Error sending resources to kinesis: "
-                      + exchange.getException().getMessage());
+              throw new SierraHarvesterException(HarvesterConstants.getResource()
+                  + " : Error sending resources to kinesis: "
+                  + exchange.getException().getMessage());
             }
             return exchange;
           }

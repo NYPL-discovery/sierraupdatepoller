@@ -4,8 +4,8 @@ import org.nypl.harvester.sierra.config.EnvironmentConfig;
 
 public class HarvesterConstants {
 
-  public static final String REDIS_KEY_LAST_UPDATED_TIME =
-      getResource() + "UpdatePoller:lastUpdatedTime";
+  public static final String REDIS_KEY_LAST_UPDATED_TIME = getResource()
+      + "UpdatePoller:lastUpdatedTime";
   public static final String SIERRA_API_UPDATED_DATE = "updatedDate";
   public static final String SIERRA_API_OFFSET = "offset";
   public static final String SIERRA_API_LIMIT = "limit";

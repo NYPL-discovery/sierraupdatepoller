@@ -15,8 +15,7 @@ public class OAuth2Client {
 
   private String grantType;
 
-  public OAuth2Client(String accessTokenUrl, String clientId, String clientSecret,
-      String grantType) {
+  public OAuth2Client(String accessTokenUrl, String clientId, String clientSecret, String grantType) {
     this.accessTokenUri = accessTokenUrl;
     this.clientId = clientId;
     this.clientSecret = clientSecret;

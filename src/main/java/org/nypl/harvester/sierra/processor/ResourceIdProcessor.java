@@ -3,6 +3,7 @@ package org.nypl.harvester.sierra.processor;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -11,8 +12,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.TimeZone;
+
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
@@ -41,21 +44,16 @@ public class ResourceIdProcessor implements Processor {
 
   private String token;
 
-  private String newUpdatedTime;
-
   private RetryTemplate retryTemplate;
-  
-  private String streamName;
-  
-  private StreamDataModel streamData;
+
+  private Map<String, StreamDataModel> streamNameAndDataModel;
 
   public ResourceIdProcessor(String token, ProducerTemplate producerTemplate,
-      RetryTemplate retryTemplate, String streamName, StreamDataModel streamData) {
+      RetryTemplate retryTemplate, Map<String, StreamDataModel> streamNameAndDataModel) {
     this.token = token;
     this.template = producerTemplate;
     this.retryTemplate = retryTemplate;
-    this.streamName = streamName;
-    this.streamData = streamData;
+    this.streamNameAndDataModel = streamNameAndDataModel;
   }
 
   @Override
@@ -64,33 +62,26 @@ public class ResourceIdProcessor implements Processor {
       String lastUpdatedDateTime = (String) exchange.getIn().getBody();
       lastUpdatedDateTime = validateLastUpdatedTime(lastUpdatedDateTime);
 
-      Map<String, Object> exchangeContents = new HashMap<>();
-
-      exchangeContents.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME, newUpdatedTime);
-
-      exchange.getIn().setBody(exchangeContents);
+      exchange.getIn().setBody(processResourcesAndGetNewUpdatedTime(lastUpdatedDateTime));
     } catch (NullPointerException npe) {
-      logger.error(
-          HarvesterConstants.getResource()
-              + " : Hit null pointer exception while getting resource ids that got updated - ",
-          npe);
+      logger.error(HarvesterConstants.getResource()
+          + " : Hit null pointer exception while getting resource ids that got updated - ", npe);
 
       throw new SierraHarvesterException(HarvesterConstants.getResource()
           + " : Null pointer exception occurred - " + npe.getMessage());
     }
   }
 
-  private void processResources(String startTime) throws SierraHarvesterException {
+  private String processResourcesAndGetNewUpdatedTime(String startTime)
+      throws SierraHarvesterException {
     List<Resource> resources = new ArrayList<>();
-    
-    ResourcePoster resourcePoster = new StreamPoster(streamName, streamData, retryTemplate);
 
     try {
       int offset = 0;
       int limit = 500;
       int total = 0;
 
-      newUpdatedTime = getCurrentTimeInZuluTimeFormat();
+      String newUpdatedTime = getCurrentTimeInZuluTimeFormat();
 
       Map<String, Object> response = getResultsFromSierra(startTime, newUpdatedTime, offset, limit);
 
@@ -98,41 +89,44 @@ public class ResourceIdProcessor implements Processor {
           (Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE);
 
       if (responseCode == 200) {
-        Map<String, Object> apiResponse = new ObjectMapper().readValue(
-            (String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
+        Map<String, Object> apiResponse =
+            new ObjectMapper().readValue(
+                (String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
 
-        Optional<Integer> optionalTotal = Optional
-            .ofNullable((Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL));
+        Optional<Integer> optionalTotal =
+            Optional.ofNullable((Integer) apiResponse
+                .get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL));
 
         if (optionalTotal.isPresent()) {
           total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
           resources = addResourcesFromAPIResponse(apiResponse, resources);
 
           if (total < limit) {
-            // send resources to kinesis
-          } else {
-            getAllResourcesForTimeRange(response, total, resources, limit, offset, startTime,
+            postResources(resources);
+          } else { // total will always be less than or equal to the limit
+            postResources(resources);
+            getAllResourcesForTimeRange(response, total, limit, offset, startTime,
                 newUpdatedTime);
           }
         }
       }
-      //send resources to kinesis
+
+      return newUpdatedTime;
     } catch (JsonParseException jsonParseException) {
       logger.error(HarvesterConstants.getResource()
           + " : Hit a json parse exception while parsing json response from resources " + "api - ",
           jsonParseException);
 
-      throw new SierraHarvesterException(
-          HarvesterConstants.getResource() + " : JsonParseException while parsing resources "
-              + "response - " + jsonParseException.getMessage());
+      throw new SierraHarvesterException(HarvesterConstants.getResource()
+          + " : JsonParseException while parsing resources " + "response - "
+          + jsonParseException.getMessage());
     } catch (JsonMappingException jsonMappingException) {
-      logger.error(
-          HarvesterConstants.getResource() + " : Hit a json mapping exception for api response ",
-          jsonMappingException);
+      logger.error(HarvesterConstants.getResource()
+          + " : Hit a json mapping exception for api response ", jsonMappingException);
 
-      throw new SierraHarvesterException(
-          HarvesterConstants.getResource() + " : JsonMappingException while for api response "
-              + "- " + jsonMappingException.getMessage());
+      throw new SierraHarvesterException(HarvesterConstants.getResource()
+          + " : JsonMappingException while for api response " + "- "
+          + jsonMappingException.getMessage());
     } catch (IOException ioe) {
       logger.error(HarvesterConstants.getResource() + " : Hit an IOException - ", ioe);
 
@@ -142,7 +136,7 @@ public class ResourceIdProcessor implements Processor {
   }
 
   private void getAllResourcesForTimeRange(Map<String, Object> response, int total,
-      List<Resource> resources, int limit, int offset, String startTime, String endTime)
+      int limit, int offset, String startTime, String endTime)
       throws SierraHarvesterException {
     try {
       while (total == limit) {
@@ -154,39 +148,33 @@ public class ResourceIdProcessor implements Processor {
             (Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE);
 
         if (responseCode == 200) {
-          Map<String, Object> apiResponse = new ObjectMapper().readValue(
-              (String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
+          List<Resource> resources = new ArrayList<>();
+          Map<String, Object> apiResponse =
+              new ObjectMapper().readValue(
+                  (String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
 
           total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
 
           resources = addResourcesFromAPIResponse(apiResponse, resources);
 
-          if (total < limit) {
-            //send to kinesis
-          }
-        } else {
-          //send to kinesis
+          postResources(resources);
         }
       }
-
-      //send to kinesis
     } catch (JsonParseException jsonParseException) {
       logger.error(HarvesterConstants.getResource()
           + " : Hit a json parse exception while parsing json response from resources " + "api - ",
           jsonParseException);
 
-      throw new SierraHarvesterException(
-          HarvesterConstants.getResource() + ": JsonParseException while parsing resources "
-              + "response - " + jsonParseException.getMessage());
+      throw new SierraHarvesterException(HarvesterConstants.getResource()
+          + ": JsonParseException while parsing resources " + "response - "
+          + jsonParseException.getMessage());
     } catch (JsonMappingException jsonMappingException) {
-      logger.error(
-          HarvesterConstants.getResource()
-              + " : Hit a json mapping exception for resources api response ",
-          jsonMappingException);
+      logger.error(HarvesterConstants.getResource()
+          + " : Hit a json mapping exception for resources api response ", jsonMappingException);
 
-      throw new SierraHarvesterException(
-          HarvesterConstants.getResource() + " : JsonMappingException for resources api response "
-              + "- " + jsonMappingException.getMessage());
+      throw new SierraHarvesterException(HarvesterConstants.getResource()
+          + " : JsonMappingException for resources api response " + "- "
+          + jsonMappingException.getMessage());
     } catch (IOException ioe) {
       logger.error(HarvesterConstants.getResource() + " : Hit an IOException - ", ioe);
 
@@ -198,8 +186,9 @@ public class ResourceIdProcessor implements Processor {
   private List<Resource> addResourcesFromAPIResponse(Map<String, Object> apiResponse,
       List<Resource> resources) throws SierraHarvesterException {
     try {
-      List<Map<String, Object>> entries = (List<Map<String, Object>>) apiResponse
-          .get(HarvesterConstants.SIERRA_API_RESPONSE_ENTRIES);
+      List<Map<String, Object>> entries =
+          (List<Map<String, Object>>) apiResponse
+              .get(HarvesterConstants.SIERRA_API_RESPONSE_ENTRIES);
 
       for (Map<String, Object> entry : entries) {
         Resource resource = new Resource();
@@ -226,8 +215,8 @@ public class ResourceIdProcessor implements Processor {
       if ((Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE) == 401) {
         token = new RouteBuilderIdPoller().generateNewTokenProperties().getTokenValue();
 
-        logger.info(
-            HarvesterConstants.getResource() + " : Token expired. Got a new token - " + token);
+        logger.info(HarvesterConstants.getResource() + " : Token expired. Got a new token - "
+            + token);
 
         apiResponse = getExchangeWithAPIResponse(startDdate, endDate, offset, limit);
 
@@ -266,10 +255,11 @@ public class ResourceIdProcessor implements Processor {
                   @Override
                   public void process(Exchange httpHeaderExchange) throws Exception {
                     httpHeaderExchange.getIn().setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
-                    httpHeaderExchange.getIn().setHeader(
-                        HarvesterConstants.SIERRA_API_HEADER_KEY_AUTHORIZATION,
-                        HarvesterConstants.SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER + " "
-                            + token);
+                    httpHeaderExchange.getIn()
+                        .setHeader(
+                            HarvesterConstants.SIERRA_API_HEADER_KEY_AUTHORIZATION,
+                            HarvesterConstants.SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER + " "
+                                + token);
                   }
                 });
               } catch (Exception e) {
@@ -284,8 +274,8 @@ public class ResourceIdProcessor implements Processor {
 
       return templateResultExchange;
     } catch (Exception e) {
-      logger.error(
-          HarvesterConstants.getResource() + " : Error occurred while calling sierra api - ", e);
+      logger.error(HarvesterConstants.getResource()
+          + " : Error occurred while calling sierra api - ", e);
       throw new SierraHarvesterException(HarvesterConstants.getResource()
           + " : Error while calling sierra api - " + e.getMessage());
     }
@@ -311,8 +301,8 @@ public class ResourceIdProcessor implements Processor {
         apiResponse = out.getBody(String.class);
       }
 
-      logger
-          .info(HarvesterConstants.getResource() + " : Sierra api response code - " + responseCode);
+      logger.info(HarvesterConstants.getResource() + " : Sierra api response code - "
+          + responseCode);
       logger
           .info(HarvesterConstants.getResource() + " : Sierra api response body - " + apiResponse);
 
@@ -327,6 +317,13 @@ public class ResourceIdProcessor implements Processor {
           + " : Error occurred while processing camel exchange to get sierra response - ", e);
       throw new SierraHarvesterException(HarvesterConstants.getResource()
           + " : Error while trying to get sierra response - " + e.getMessage());
+    }
+  }
+
+  private void postResources(List<Resource> resources) throws SierraHarvesterException {
+    for (Entry<String, StreamDataModel> entry : streamNameAndDataModel.entrySet()) {
+      ResourcePoster poster = new StreamPoster(entry.getKey(), entry.getValue(), retryTemplate);
+      poster.postResources(template, resources);
     }
   }
 
@@ -350,8 +347,8 @@ public class ResourceIdProcessor implements Processor {
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
     dateFormat.setTimeZone(TimeZone.getTimeZone("Zulu"));
 
-    logger.info(
-        HarvesterConstants.getResource() + " : Current time: " + dateFormat.format(new Date()));
+    logger.info(HarvesterConstants.getResource() + " : Current time: "
+        + dateFormat.format(new Date()));
 
     return dateFormat.format(new Date());
   }

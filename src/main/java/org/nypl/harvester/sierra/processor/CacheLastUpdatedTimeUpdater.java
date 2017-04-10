@@ -1,6 +1,5 @@
 package org.nypl.harvester.sierra.processor;
 
-import java.util.Map;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.nypl.harvester.sierra.config.EnvironmentConfig;
@@ -27,10 +26,8 @@ public class CacheLastUpdatedTimeUpdater implements Processor {
   @Override
   public void process(Exchange exchange) throws SierraHarvesterException {
     try {
-      Map<String, Object> exchangeContents = exchange.getIn().getBody(Map.class);
+      String timeToUpdateInCache = exchange.getIn().getBody(String.class);
 
-      String timeToUpdateInCache =
-          (String) exchangeContents.get(HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME);
       retryTemplate.execute(new RetryCallback<Boolean, SierraHarvesterException>() {
 
         @Override
@@ -43,8 +40,7 @@ public class CacheLastUpdatedTimeUpdater implements Processor {
       logger.error(HarvesterConstants.getResource()
           + " : Error occurred while updating redis with the last updated time - ", e);
       throw new SierraHarvesterException(HarvesterConstants.getResource()
-          + " : Error occurred while updating redis with the last updated time - "
-          + e.getMessage());
+          + " : Error occurred while updating redis with the last updated time - " + e.getMessage());
     }
   }
 

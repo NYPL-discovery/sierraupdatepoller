@@ -41,8 +41,8 @@ public class AvroSerializer {
     try {
       encoder.flush();
     } catch (IOException e) {
-      throw new SierraHarvesterException(
-          HarvesterConstants.getResource() + ": Unable to flush Avro object: " + e.getMessage());
+      throw new SierraHarvesterException(HarvesterConstants.getResource()
+          + ": Unable to flush Avro object: " + e.getMessage());
     }
 
     return outputStream.toByteArray();

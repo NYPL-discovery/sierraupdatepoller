@@ -11,7 +11,7 @@ public class SierraHarvesterException extends Exception {
   private static Logger logger = LoggerFactory.getLogger(SierraHarvesterException.class);
 
   public SierraHarvesterException(String message) {
-    logger.error(
-        HarvesterConstants.getResource() + " : SierraHarvesterException occurred - " + message);
+    logger.error(HarvesterConstants.getResource() + " : SierraHarvesterException occurred - "
+        + message);
   }
 }

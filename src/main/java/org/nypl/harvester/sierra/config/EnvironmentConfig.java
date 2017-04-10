@@ -10,8 +10,8 @@ public class EnvironmentConfig {
 
   public static String kinesisUpdateStream = System.getenv("kinesisResourceUpdateStream");
 
-  public static String kinesisResourceRetrievalRequestStream =
-      System.getenv("kinesisResourceRetrievalRequestStream");
+  public static String kinesisResourceRetrievalRequestStream = System
+      .getenv("kinesisResourceRetrievalRequestStream");
 
   public static String sierraApi = System.getenv("sierraApi");
 

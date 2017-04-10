@@ -1,6 +1,8 @@
 package org.nypl.harvester.sierra.routebuilder;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -10,6 +12,7 @@ import org.nypl.harvester.sierra.api.utils.OAuth2Client;
 import org.nypl.harvester.sierra.api.utils.TokenProperties;
 import org.nypl.harvester.sierra.config.EnvironmentConfig;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
+import org.nypl.harvester.sierra.model.StreamDataModel;
 import org.nypl.harvester.sierra.model.streamdatamodel.SierraResourceRetrievalRequest;
 import org.nypl.harvester.sierra.model.streamdatamodel.SierraResourceUpdate;
 import org.nypl.harvester.sierra.processor.CacheResourceIdMonitor;
@@ -39,6 +42,13 @@ public class RouteBuilderIdPoller extends RouteBuilder {
 
   @Override
   public void configure() throws Exception {
+
+    Map<String, StreamDataModel> streamNameAndDataModel = new HashMap<>();
+    streamNameAndDataModel.put(
+        EnvironmentConfig.kinesisResourceRetrievalRequestStream,
+        new SierraResourceRetrievalRequest());
+    streamNameAndDataModel.put(EnvironmentConfig.kinesisUpdateStream, new SierraResourceUpdate());
+
     onException(SierraHarvesterException.class).handled(true).process(new Processor() {
 
       @Override
@@ -49,16 +59,12 @@ public class RouteBuilderIdPoller extends RouteBuilder {
     });
 
     from("scheduler:sierrapoller?delay=" + EnvironmentConfig.pollDelay + "&useFixedDelay=true")
-        // check redis to see if there is updatedDate key
+    // check redis to see if there is updatedDate key
         .process(new CacheResourceIdMonitor(retryTemplate))
         // send the updatedDatekey value to id harvester
         // id harvester has to get ids from sierra until now and post it to kinesis
-        .process(new ResourceIdProcessor(getToken(), template, retryTemplate))
-        // send ids to kinesis
-        .process(new StreamPoster(template, EnvironmentConfig.kinesisUpdateStream,
-            new SierraResourceUpdate(), retryTemplate))
-        .process(new StreamPoster(template, EnvironmentConfig.kinesisResourceRetrievalRequestStream,
-            new SierraResourceRetrievalRequest(), retryTemplate))
+        .process(
+            new ResourceIdProcessor(getToken(), template, retryTemplate, streamNameAndDataModel))
         // update Kinesis with last checked time
         .process(new CacheLastUpdatedTimeUpdater(retryTemplate));
   }
@@ -84,8 +90,8 @@ public class RouteBuilderIdPoller extends RouteBuilder {
     } catch (Exception e) {
       logger.error(HarvesterConstants.getResource() + " : Exception caught - ", e);
 
-      throw new SierraHarvesterException(
-          HarvesterConstants.getResource() + " : Exception occurred while getting token");
+      throw new SierraHarvesterException(HarvesterConstants.getResource()
+          + " : Exception occurred while getting token");
     }
   }
 
@@ -93,7 +99,7 @@ public class RouteBuilderIdPoller extends RouteBuilder {
     try {
       return new OAuth2Client(EnvironmentConfig.accessTokenUri, EnvironmentConfig.clientId,
           EnvironmentConfig.clientSecret, EnvironmentConfig.grantType)
-              .createAndGetTokenAccessProperties();
+          .createAndGetTokenAccessProperties();
     } catch (Exception e) {
       logger.error(HarvesterConstants.getResource()
           + " : Error occurred while retrieving sierra token properties - ", e);
