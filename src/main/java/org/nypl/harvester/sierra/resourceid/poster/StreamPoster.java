@@ -1,4 +1,4 @@
-package org.nypl.harvester.sierra.processor;
+package org.nypl.harvester.sierra.resourceid.poster;
 
 import java.util.List;
 import java.util.Map;
@@ -19,11 +19,9 @@ import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
 import org.springframework.retry.support.RetryTemplate;
 
-public class StreamPoster implements Processor {
+public class StreamPoster implements ResourcePoster{
 
   private static Logger logger = LoggerFactory.getLogger(StreamPoster.class);
-
-  private ProducerTemplate template;
 
   private String streamName;
 
@@ -31,24 +29,15 @@ public class StreamPoster implements Processor {
 
   private RetryTemplate retryTemplate;
 
-  public StreamPoster(ProducerTemplate template, String streamName, StreamDataModel streamData,
+  public StreamPoster(String streamName, StreamDataModel streamData,
       RetryTemplate retryTemplate) {
-    this.template = template;
     this.streamName = streamName;
     this.streamDataModel = streamData;
     this.retryTemplate = retryTemplate;
   }
-
+  
   @Override
-  public void process(Exchange exchange) throws SierraHarvesterException {
-    Map<String, Object> exchangeContents = exchange.getIn().getBody(Map.class);
-    List<Resource> resources =
-        (List<Resource>) exchangeContents.get(HarvesterConstants.APP_RESOURCES_LIST);
-
-    sendToKinesis(resources);
-  }
-
-  private void sendToKinesis(List<Resource> resources) throws SierraHarvesterException {
+  public void postResources(ProducerTemplate template, List<Resource> resources) throws SierraHarvesterException {
     try {
       Schema schema = AvroSerializer.getSchema(this.getStreamDataModel());
 
@@ -120,4 +109,5 @@ public class StreamPoster implements Processor {
   public void setStreamDataModel(StreamDataModel streamDataModel) {
     this.streamDataModel = streamDataModel;
   }
+
 }

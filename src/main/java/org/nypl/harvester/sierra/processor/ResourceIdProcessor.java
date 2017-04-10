@@ -21,6 +21,9 @@ import org.apache.camel.http.common.HttpOperationFailedException;
 import org.nypl.harvester.sierra.config.EnvironmentConfig;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.model.Resource;
+import org.nypl.harvester.sierra.model.StreamDataModel;
+import org.nypl.harvester.sierra.resourceid.poster.ResourcePoster;
+import org.nypl.harvester.sierra.resourceid.poster.StreamPoster;
 import org.nypl.harvester.sierra.routebuilder.RouteBuilderIdPoller;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
@@ -30,9 +33,9 @@ import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
 import org.springframework.retry.support.RetryTemplate;
 
-public class ResourceIdUpdateHarvester implements Processor {
+public class ResourceIdProcessor implements Processor {
 
-  private static Logger logger = LoggerFactory.getLogger(ResourceIdUpdateHarvester.class);
+  private static Logger logger = LoggerFactory.getLogger(ResourceIdProcessor.class);
 
   private ProducerTemplate template;
 
@@ -41,12 +44,18 @@ public class ResourceIdUpdateHarvester implements Processor {
   private String newUpdatedTime;
 
   private RetryTemplate retryTemplate;
+  
+  private String streamName;
+  
+  private StreamDataModel streamData;
 
-  public ResourceIdUpdateHarvester(String token, ProducerTemplate producerTemplate,
-      RetryTemplate retryTemplate) {
+  public ResourceIdProcessor(String token, ProducerTemplate producerTemplate,
+      RetryTemplate retryTemplate, String streamName, StreamDataModel streamData) {
     this.token = token;
     this.template = producerTemplate;
     this.retryTemplate = retryTemplate;
+    this.streamName = streamName;
+    this.streamData = streamData;
   }
 
   @Override
@@ -56,9 +65,6 @@ public class ResourceIdUpdateHarvester implements Processor {
       lastUpdatedDateTime = validateLastUpdatedTime(lastUpdatedDateTime);
 
       Map<String, Object> exchangeContents = new HashMap<>();
-
-      exchangeContents.put(HarvesterConstants.APP_RESOURCES_LIST,
-          iterateToGetResourceIds(lastUpdatedDateTime));
 
       exchangeContents.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_TIME, newUpdatedTime);
 
@@ -74,8 +80,10 @@ public class ResourceIdUpdateHarvester implements Processor {
     }
   }
 
-  private List<Resource> iterateToGetResourceIds(String startTime) throws SierraHarvesterException {
+  private void processResources(String startTime) throws SierraHarvesterException {
     List<Resource> resources = new ArrayList<>();
+    
+    ResourcePoster resourcePoster = new StreamPoster(streamName, streamData, retryTemplate);
 
     try {
       int offset = 0;
@@ -101,15 +109,14 @@ public class ResourceIdUpdateHarvester implements Processor {
           resources = addResourcesFromAPIResponse(apiResponse, resources);
 
           if (total < limit) {
-            return resources;
+            // send resources to kinesis
           } else {
-            return getAllResourcesForTimeRange(response, total, resources, limit, offset, startTime,
+            getAllResourcesForTimeRange(response, total, resources, limit, offset, startTime,
                 newUpdatedTime);
           }
         }
       }
-
-      return resources;
+      //send resources to kinesis
     } catch (JsonParseException jsonParseException) {
       logger.error(HarvesterConstants.getResource()
           + " : Hit a json parse exception while parsing json response from resources " + "api - ",
@@ -134,7 +141,7 @@ public class ResourceIdUpdateHarvester implements Processor {
     }
   }
 
-  private List<Resource> getAllResourcesForTimeRange(Map<String, Object> response, int total,
+  private void getAllResourcesForTimeRange(Map<String, Object> response, int total,
       List<Resource> resources, int limit, int offset, String startTime, String endTime)
       throws SierraHarvesterException {
     try {
@@ -155,14 +162,14 @@ public class ResourceIdUpdateHarvester implements Processor {
           resources = addResourcesFromAPIResponse(apiResponse, resources);
 
           if (total < limit) {
-            return resources;
+            //send to kinesis
           }
         } else {
-          return resources;
+          //send to kinesis
         }
       }
 
-      return resources;
+      //send to kinesis
     } catch (JsonParseException jsonParseException) {
       logger.error(HarvesterConstants.getResource()
           + " : Hit a json parse exception while parsing json response from resources " + "api - ",

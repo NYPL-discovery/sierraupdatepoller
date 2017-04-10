@@ -14,8 +14,8 @@ import org.nypl.harvester.sierra.model.streamdatamodel.SierraResourceRetrievalRe
 import org.nypl.harvester.sierra.model.streamdatamodel.SierraResourceUpdate;
 import org.nypl.harvester.sierra.processor.CacheResourceIdMonitor;
 import org.nypl.harvester.sierra.processor.CacheLastUpdatedTimeUpdater;
-import org.nypl.harvester.sierra.processor.ResourceIdUpdateHarvester;
-import org.nypl.harvester.sierra.processor.StreamPoster;
+import org.nypl.harvester.sierra.processor.ResourceIdProcessor;
+import org.nypl.harvester.sierra.resourceid.poster.StreamPoster;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +52,8 @@ public class RouteBuilderIdPoller extends RouteBuilder {
         // check redis to see if there is updatedDate key
         .process(new CacheResourceIdMonitor(retryTemplate))
         // send the updatedDatekey value to id harvester
-        // id harvester has to validate and then query for that until time now
-        .process(new ResourceIdUpdateHarvester(getToken(), template, retryTemplate))
+        // id harvester has to get ids from sierra until now and post it to kinesis
+        .process(new ResourceIdProcessor(getToken(), template, retryTemplate))
         // send ids to kinesis
         .process(new StreamPoster(template, EnvironmentConfig.kinesisUpdateStream,
             new SierraResourceUpdate(), retryTemplate))
