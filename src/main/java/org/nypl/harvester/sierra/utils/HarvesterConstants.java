@@ -2,10 +2,15 @@ package org.nypl.harvester.sierra.utils;
 
 import org.nypl.harvester.sierra.config.EnvironmentConfig;
 
-public class HarvesterConstants {
+public final class HarvesterConstants {
 
-  public static final String REDIS_KEY_LAST_UPDATED_TIME =
-      getResource() + "UpdatePoller:lastUpdatedTime";
+  public static final String REDIS_KEY_START_TIME_DELTA =
+      EnvironmentConfig.resourceType + "UpdatePoller:beginTimeDelta";
+  public static final String REDIS_KEY_END_TIME_DELTA =
+      EnvironmentConfig.resourceType + "UpdatePoller:endTimeDelta";
+  public static final String REDIS_KEY_LAST_UPDATED_OFFSET =
+      EnvironmentConfig.resourceType + "UpdatePoller:lastUpdatedOffset";
+  public static final String REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE = "isComplete";
   public static final String SIERRA_API_UPDATED_DATE = "updatedDate";
   public static final String SIERRA_API_OFFSET = "offset";
   public static final String SIERRA_API_LIMIT = "limit";
@@ -20,16 +25,9 @@ public class HarvesterConstants {
   public static final String SIERRA_API_HEADER_AUTHORIZATION_VAL_BEARER = "bearer";
   public static final String KINESIS_PARTITION_KEY = "CamelAwsKinesisPartitionKey";
   public static final String KINESIS_SEQUENCE_NUMBER = "CamelAwsKinesisSequenceNumber";
-  public static final String APP_RESOURCES_LIST = getResource();
   public static final String BIBS = "bibs";
   public static final String ITEMS = "items";
-
-  public static String getResource() {
-    if (EnvironmentConfig.isBib)
-      return BIBS;
-    else
-      return ITEMS;
-  }
-
+  public static final String APP_OPTIONAL_CACHE_RESOURCE = "optionalCacheResource";
+  public static final String APP_RESOURCE_TYPE = "resourceType";
 
 }
