@@ -1,8 +1,8 @@
 package org.nypl.harvester.sierra.config;
 
-public class EnvironmentConfig {
+public final class EnvironmentConfig {
 
-  public static Boolean isBib = Boolean.parseBoolean(System.getenv("processBibs").toLowerCase());
+  public static String resourceType = System.getenv("resourceType").trim().toLowerCase();
 
   public static String redisHost = System.getenv("redisHost");
 
@@ -10,8 +10,8 @@ public class EnvironmentConfig {
 
   public static String kinesisUpdateStream = System.getenv("kinesisResourceUpdateStream");
 
-  public static String kinesisResourceRetrievalRequestStream = System
-      .getenv("kinesisResourceRetrievalRequestStream");
+  public static String kinesisResourceRetrievalRequestStream =
+      System.getenv("kinesisResourceRetrievalRequestStream");
 
   public static String sierraApi = System.getenv("sierraApi");
 
@@ -24,4 +24,6 @@ public class EnvironmentConfig {
   public static String grantType = System.getenv("grantType");
 
   public static String pollDelay = System.getenv("pollDelay");
+
+
 }

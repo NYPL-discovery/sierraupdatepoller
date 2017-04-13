@@ -8,7 +8,7 @@ import org.nypl.harvester.sierra.model.Resource;
 
 public interface ResourcePoster {
 
-  public void postResources(ProducerTemplate template, List<Resource> resources)
-      throws SierraHarvesterException;
+  public void postResources(ProducerTemplate template, List<Resource> resources,
+      String resourceType) throws SierraHarvesterException;
 
 }

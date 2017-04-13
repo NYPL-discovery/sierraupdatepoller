@@ -1,7 +1,6 @@
 package org.nypl.harvester.sierra.resourceid.poster;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.apache.avro.Schema;
 import org.apache.camel.Exchange;
@@ -36,8 +35,8 @@ public class StreamPoster implements ResourcePoster {
   }
 
   @Override
-  public void postResources(ProducerTemplate template, List<Resource> resources)
-      throws SierraHarvesterException {
+  public void postResources(ProducerTemplate template, List<Resource> resources,
+      String resourceType) throws SierraHarvesterException {
     try {
       Schema schema = AvroSerializer.getSchema(this.getStreamDataModel());
 
@@ -46,9 +45,9 @@ public class StreamPoster implements ResourcePoster {
 
           @Override
           public Exchange doWithRetry(RetryContext context) throws SierraHarvesterException {
-            Exchange exchange =
-                template.request("aws-kinesis://" + getStreamName()
-                    + "?amazonKinesisClient=#getAmazonKinesisClient", new Processor() {
+            Exchange exchange = template.request(
+                "aws-kinesis://" + getStreamName() + "?amazonKinesisClient=#getAmazonKinesisClient",
+                new Processor() {
                   @Override
                   public void process(Exchange kinesisRequest) throws SierraHarvesterException {
                     try {
@@ -57,25 +56,24 @@ public class StreamPoster implements ResourcePoster {
                       kinesisRequest.getIn().setHeader(HarvesterConstants.KINESIS_SEQUENCE_NUMBER,
                           System.currentTimeMillis());
 
-                      kinesisRequest.getIn().setBody(
-                          AvroSerializer.encode(schema,
-                              StreamDataTranslator.translate(getStreamDataModel(), resource)));
+                      kinesisRequest.getIn()
+                          .setBody(AvroSerializer.encode(schema, StreamDataTranslator.translate(
+                              getStreamDataModel(), resource, resourceType), resourceType));
                     } catch (Exception exception) {
-                      logger.error(HarvesterConstants.getResource()
-                          + " : Exception thrown encoding data", exception);
-                      throw new SierraHarvesterException(HarvesterConstants.getResource()
-                          + " : Error occurred while posting to stream");
+                      logger.error(resourceType + " : Exception thrown encoding data", exception);
+                      throw new SierraHarvesterException("Error occurred while posting to stream",
+                          resourceType);
                     }
                   }
                 });
 
             if (exchange.isFailed()) {
-              logger.error(HarvesterConstants.getResource()
-                  + " : Error processing ProducerTemplate", exchange.getException());
+              logger.error(resourceType + " : Error processing ProducerTemplate",
+                  exchange.getException());
 
-              throw new SierraHarvesterException(HarvesterConstants.getResource()
-                  + " : Error sending resources to kinesis: "
-                  + exchange.getException().getMessage());
+              throw new SierraHarvesterException(
+                  "Error sending resources to kinesis: " + exchange.getException().getMessage(),
+                  resourceType);
             }
             return exchange;
           }
@@ -83,13 +81,12 @@ public class StreamPoster implements ResourcePoster {
 
       }
 
-      logger.info(HarvesterConstants.getResource() + " : Sent " + resources.size()
-          + " resources to Kinesis stream: " + getStreamName());
+      logger.info(resourceType + " : Sent " + resources.size() + " resources to Kinesis stream: "
+          + getStreamName());
     } catch (Exception e) {
-      logger.error(HarvesterConstants.getResource()
-          + " : Error occurred while sending resources to kinesis - ", e);
-      throw new SierraHarvesterException(HarvesterConstants.getResource()
-          + " : Error occurred while sending resources to kinesis - " + e.getMessage());
+      logger.error(resourceType + " : Error occurred while sending resources to kinesis - ", e);
+      throw new SierraHarvesterException(
+          "Error occurred while sending resources to kinesis - " + e.getMessage(), resourceType);
     }
   }
 

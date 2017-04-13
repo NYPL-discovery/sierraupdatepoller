@@ -20,7 +20,7 @@ public class BaseConfig {
   public AmazonKinesisClient getAmazonKinesisClient() {
     AmazonKinesisClient amazonKinesisClient = new AmazonKinesisClient();
 
-    logger.info(HarvesterConstants.getResource() + " : Configured Kinesis Client");
+    logger.info("Configured Kinesis Client");
 
     return amazonKinesisClient;
   }
