@@ -121,6 +121,7 @@ public class ResourceIdProcessor implements Processor {
           resources = addResourcesFromAPIResponse(apiResponse, resources, resourceType);
 
           if (total < limit) {
+            offset = total;
             postResourcesAndUpdateCache(resources, offset, startTime, endTime, resourceType);
           } else { // total will always be less than or equal to the limit
             postResourcesAndUpdateCache(resources, offset, startTime, endTime, resourceType);
@@ -330,15 +331,15 @@ public class ResourceIdProcessor implements Processor {
     for (Entry<String, StreamDataModel> entry : streamNameAndDataModel.entrySet()) {
       ResourcePoster poster = new StreamPoster(entry.getKey(), entry.getValue(), retryTemplate);
       poster.postResources(template, resources, resourceType);
-      Map<String, String> cacheUpdateStatus = new HashMap<>();
-      cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET,
-          Integer.toString(offset));
-      cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE,
-          Boolean.toString(false));
-      cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_START_TIME_DELTA, startTimeDelta);
-      cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_END_TIME_DELTA, endTimeDelta);
-      new CacheProcessor().setHashAllValsInCache(resourceType, cacheUpdateStatus);
     }
+    Map<String, String> cacheUpdateStatus = new HashMap<>();
+    cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET,
+        Integer.toString(offset));
+    cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE,
+        Boolean.toString(false));
+    cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_START_TIME_DELTA, startTimeDelta);
+    cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_END_TIME_DELTA, endTimeDelta);
+    new CacheProcessor().setHashAllValsInCache(resourceType, cacheUpdateStatus);
   }
 
   private String validateLastUpdatedTime(String lastUpdatedTime) {

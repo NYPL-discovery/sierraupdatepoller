@@ -62,8 +62,7 @@ public class CacheResourceMonitor implements Processor {
         Map<String, String> cacheProperties = optionalCacheResource.get();
         CacheResource cacheResource = new CacheResource();
         cacheResource.setEndTime(cacheProperties.get(HarvesterConstants.REDIS_KEY_END_TIME_DELTA));
-        cacheResource.setIsDone(Boolean.parseBoolean(cacheProperties
-            .get(cacheProperties.get(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE))));
+        cacheResource.setIsDone(Boolean.parseBoolean(cacheProperties.get(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE)));
         cacheResource.setOffset(Integer
             .parseInt(cacheProperties.get(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET)));
         cacheResource.setResourceType(resourceType);
