@@ -7,9 +7,7 @@ public class SierraResourceRetrievalRequest extends StreamDataModel {
   private String id;
 
   @Override
-  public boolean translateToStreamData(Object data) {
-    Resource resource = (Resource) data;
-
+  public boolean translateToStreamData(Resource resource) {
     setId(resource.getId());
 
     return true;
