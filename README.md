@@ -6,6 +6,7 @@ This package is intended to be used to retrieve Bib/Item IDs that have been upda
 
 Configure environment variables for the following (also check src/main/java/...config/Environment.config file for anything that is not listed here):
 
+```
 resourceType = bibs/items (depending on which one has to be processed)
 
 redisHost = <redis_host>
@@ -27,11 +28,13 @@ clientSecret = <clientSecret_to_access_sierra_api>
 grantType = <grant_type_for_sierra>
 
 pollDelay = <how_frequent_should_sierra_calls_be_made>
+```
 
 The following amazon credentials need to be provided too. These are not used by EnvironmentConfig.java file, however, using Amazon credentials chaining process it would need this if it doesn't see one set:
-
+```
 AWS_ACCESS_KEY_ID = <amazon_key_id>
 AWS_SECRET_ACCESS_KEY = <amazon_secret_key>
+```
 
 ## Requirements (check pom.xml for version information)
 
