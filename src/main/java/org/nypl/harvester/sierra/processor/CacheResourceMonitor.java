@@ -57,12 +57,12 @@ public class CacheResourceMonitor implements Processor {
     try {
       Optional<Map<String, String>> optionalCacheResource =
           Optional.ofNullable(new CacheProcessor().getHashAllValsInCache(resourceType));
-      Map<String, String> cacheProps = optionalCacheResource.get();
-      if (cacheProps.size() > 0) {
+      if (optionalCacheResource.isPresent() && optionalCacheResource.get().size() > 0) {
         Map<String, String> cacheProperties = optionalCacheResource.get();
         CacheResource cacheResource = new CacheResource();
         cacheResource.setEndTime(cacheProperties.get(HarvesterConstants.REDIS_KEY_END_TIME_DELTA));
-        cacheResource.setIsDone(Boolean.parseBoolean(cacheProperties.get(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE)));
+        cacheResource.setIsDone(Boolean.parseBoolean(
+            cacheProperties.get(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE)));
         cacheResource.setOffset(Integer
             .parseInt(cacheProperties.get(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET)));
         cacheResource.setResourceType(resourceType);
@@ -73,10 +73,10 @@ public class CacheResourceMonitor implements Processor {
         return Optional.ofNullable(null);
     } catch (Exception e) {
       logger.error(
-          resourceType + " : Error occurred while getting cached resource from redis server - ",
-          e);
+          resourceType + " : Error occurred while getting cached resource from redis server - ", e);
       throw new SierraHarvesterException(
-          "Error occurred while getting while getting cached resource from redis server", resourceType);
+          "Error occurred while getting while getting cached resource from redis server",
+          resourceType);
     }
   }
 
