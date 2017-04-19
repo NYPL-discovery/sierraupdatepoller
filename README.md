@@ -56,5 +56,5 @@ Before code checkin, please make sure code follows the google checkstyle format
 
 ## Usage
 On IDE:
-  STS - Choose Run As - Run as a spring boot application
-  As a jar file - mvn clean package will create jar file and start the app. To just create the jar file - mvn clean package -DskipTests
+   * STS - Choose Run As - Run as a spring boot application
+   * As a jar file - mvn clean package will create jar file and start the app. To just create the jar file - mvn clean package -DskipTests
