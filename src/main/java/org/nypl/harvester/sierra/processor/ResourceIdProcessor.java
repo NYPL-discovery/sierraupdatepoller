@@ -129,6 +129,8 @@ public class ResourceIdProcessor implements Processor {
                 resourceType);
           }
         }
+      }else if(responseCode >= 400){
+        logger.error("API_ERROR: Hit error with response code- " + responseCode);
       }
     } catch (JsonParseException jsonParseException) {
       logger.error(cacheResource.getResourceType()
@@ -173,6 +175,8 @@ public class ResourceIdProcessor implements Processor {
           resources = addResourcesFromAPIResponse(apiResponse, resources, resourceType);
 
           postResourcesAndUpdateCache(resources, offset, startTime, endTime, resourceType);
+        }else if(responseCode >= 400){
+          logger.error("API_ERROR: Hit error with response code- " + responseCode);
         }
       }
     } catch (JsonParseException jsonParseException) {
@@ -273,7 +277,7 @@ public class ResourceIdProcessor implements Processor {
                   }
                 });
               } catch (Exception e) {
-                logger.error("Error occurred while calling sierra api - ", e);
+                logger.error("API_ERROR: Error occurred while calling sierra api - ", e);
                 throw new SierraHarvesterException(
                     "Error occurred while calling sierra api - " + e.getMessage(), resourceType);
               }
