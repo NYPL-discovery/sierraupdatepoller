@@ -56,16 +56,31 @@ public class CacheResourceMonitor implements Processor {
           Optional.ofNullable(new CacheProcessor().getHashAllValsInCache(resourceType));
       if (optionalCacheResource.isPresent() && optionalCacheResource.get().size() > 0) {
         Map<String, String> cacheProperties = optionalCacheResource.get();
-        CacheResource cacheResource = new CacheResource();
-        cacheResource.setEndTime(cacheProperties.get(HarvesterConstants.REDIS_KEY_END_TIME_DELTA));
-        cacheResource.setIsDone(Boolean.parseBoolean(
-            cacheProperties.get(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE)));
-        cacheResource.setOffset(Integer
-            .parseInt(cacheProperties.get(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET)));
-        cacheResource.setResourceType(resourceType);
-        cacheResource
-            .setStartTime(cacheProperties.get(HarvesterConstants.REDIS_KEY_START_TIME_DELTA));
-        return Optional.of(cacheResource);
+        if (Optional.ofNullable(cacheProperties.get(HarvesterConstants.REDIS_KEY_END_TIME_DELTA))
+            .isPresent()
+            && Optional
+                .ofNullable(cacheProperties.get(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET))
+                .isPresent()
+            && Optional
+                .ofNullable(cacheProperties.get(HarvesterConstants.REDIS_KEY_START_TIME_DELTA))
+                .isPresent()
+            && Optional
+                .ofNullable(
+                    cacheProperties.get(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE))
+                .isPresent()) {
+          CacheResource cacheResource = new CacheResource();
+          cacheResource
+              .setEndTime(cacheProperties.get(HarvesterConstants.REDIS_KEY_END_TIME_DELTA));
+          cacheResource.setIsDone(Boolean.parseBoolean(
+              cacheProperties.get(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE)));
+          cacheResource.setOffset(Integer
+              .parseInt(cacheProperties.get(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET)));
+          cacheResource.setResourceType(resourceType);
+          cacheResource
+              .setStartTime(cacheProperties.get(HarvesterConstants.REDIS_KEY_START_TIME_DELTA));
+          return Optional.of(cacheResource);
+        } else
+          return Optional.ofNullable(null);
       } else
         return Optional.ofNullable(null);
     } catch (Exception e) {
