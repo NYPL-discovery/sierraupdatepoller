@@ -50,7 +50,7 @@ public class RouteBuilderIdPoller extends RouteBuilder {
 
       @Override
       public void process(Exchange exchange) throws Exception {
-        logger.error("APP_ERROR: " + EnvironmentConfig.resourceType
+        logger.error(EnvironmentConfig.resourceType
             + " : FATAL ERROR OCCURRED - Component: sierraupdatepoller");
       }
     });
