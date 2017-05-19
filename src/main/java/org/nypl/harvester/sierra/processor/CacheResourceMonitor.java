@@ -75,7 +75,7 @@ public class CacheResourceMonitor implements Processor {
       logger.error(
           resourceType + " : Error occurred while getting cached resource from redis server - ", e);
       throw new SierraHarvesterException(
-          "Error occurred while getting while getting cached resource from redis server",
+          "Error occurred while getting cached resource from redis server",
           resourceType);
     }
   }
