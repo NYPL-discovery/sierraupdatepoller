@@ -1,6 +1,5 @@
 package org.nypl.harvester.sierra.exception;
 
-import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
