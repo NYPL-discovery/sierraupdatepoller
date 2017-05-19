@@ -8,7 +8,6 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.nypl.harvester.sierra.cache.CacheProcessor;
 import org.nypl.harvester.sierra.cache.CacheResource;
-import org.nypl.harvester.sierra.config.EnvironmentConfig;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
 import org.slf4j.Logger;
@@ -16,8 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
 import org.springframework.retry.support.RetryTemplate;
-
-import redis.clients.jedis.Jedis;
 
 public class CacheResourceMonitor implements Processor {
 
@@ -75,8 +72,7 @@ public class CacheResourceMonitor implements Processor {
       logger.error(
           resourceType + " : Error occurred while getting cached resource from redis server - ", e);
       throw new SierraHarvesterException(
-          "Error occurred while getting cached resource from redis server",
-          resourceType);
+          "Error occurred while getting cached resource from redis server", resourceType);
     }
   }
 

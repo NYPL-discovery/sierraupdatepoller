@@ -10,7 +10,8 @@ public final class HarvesterConstants {
       EnvironmentConfig.resourceType + "UpdatePoller:endTimeDelta";
   public static final String REDIS_KEY_LAST_UPDATED_OFFSET =
       EnvironmentConfig.resourceType + "UpdatePoller:lastUpdatedOffset";
-  public static final String REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE = "isComplete";
+  public static final String REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE =
+      EnvironmentConfig.resourceType + "UpdatePoller:isComplete";
   public static final String SIERRA_API_UPDATED_DATE = "updatedDate";
   public static final String SIERRA_API_OFFSET = "offset";
   public static final String SIERRA_API_LIMIT = "limit";

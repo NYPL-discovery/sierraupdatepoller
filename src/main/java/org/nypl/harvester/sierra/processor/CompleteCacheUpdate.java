@@ -1,5 +1,8 @@
 package org.nypl.harvester.sierra.processor;
 
+import java.util.Map;
+import java.util.Optional;
+
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.nypl.harvester.sierra.cache.CacheProcessor;
@@ -51,8 +54,16 @@ public class CompleteCacheUpdate implements Processor {
 
   private Boolean updateCache(String resource) throws SierraHarvesterException {
     try {
-      new CacheProcessor().setHashSingleValInCache(resource,
-          HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE, Boolean.toString(true));
+      Map<String, String> cacheProperties = new CacheProcessor().getHashAllValsInCache(resource);
+      if (Optional.ofNullable(cacheProperties.get(HarvesterConstants.REDIS_KEY_END_TIME_DELTA))
+          .isPresent()
+          && Optional
+              .ofNullable(cacheProperties.get(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET))
+              .isPresent()
+          && Optional.ofNullable(cacheProperties.get(HarvesterConstants.REDIS_KEY_START_TIME_DELTA))
+              .isPresent())
+        new CacheProcessor().setHashSingleValInCache(resource,
+            HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE, Boolean.toString(true));
       return true;
     } catch (Exception e) {
       logger.error(

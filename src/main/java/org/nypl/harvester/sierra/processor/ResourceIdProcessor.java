@@ -129,7 +129,7 @@ public class ResourceIdProcessor implements Processor {
                 resourceType);
           }
         }
-      }else if(responseCode >= 400){
+      } else if (responseCode >= 400) {
         logger.error("API_ERROR: Hit error with response code- " + responseCode);
       }
     } catch (JsonParseException jsonParseException) {
@@ -175,7 +175,7 @@ public class ResourceIdProcessor implements Processor {
           resources = addResourcesFromAPIResponse(apiResponse, resources, resourceType);
 
           postResourcesAndUpdateCache(resources, offset, startTime, endTime, resourceType);
-        }else if(responseCode >= 400){
+        } else if (responseCode >= 400) {
           logger.error("API_ERROR: Hit error with response code- " + responseCode);
         }
       }

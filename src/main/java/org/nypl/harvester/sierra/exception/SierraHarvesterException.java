@@ -10,6 +10,7 @@ public class SierraHarvesterException extends Exception {
   private static Logger logger = LoggerFactory.getLogger(SierraHarvesterException.class);
 
   public SierraHarvesterException(String message, String resourceType) {
-    logger.error("APP_ERROR: " + resourceType + " : SierraHarvesterException occurred - " + message);
+    logger
+        .error("APP_ERROR: " + resourceType + " : SierraHarvesterException occurred - " + message);
   }
 }

@@ -46,7 +46,7 @@ public class RouteBuilderIdPoller extends RouteBuilder {
         new SierraResourceRetrievalRequest());
     streamNameAndDataModel.put(EnvironmentConfig.kinesisUpdateStream, new SierraResourceUpdate());
 
-    onException(SierraHarvesterException.class).handled(true).process(new Processor() {
+    onException(SierraHarvesterException.class).process(new Processor() {
 
       @Override
       public void process(Exchange exchange) throws Exception {
