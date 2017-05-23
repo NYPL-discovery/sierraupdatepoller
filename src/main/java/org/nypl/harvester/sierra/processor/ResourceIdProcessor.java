@@ -127,14 +127,13 @@ public class ResourceIdProcessor implements Processor {
           if (total < limit) {
             offset = total;
             postResourcesAndUpdateCache(resources, offset, startTime, endTime, resourceType);
-            return true;
           } else { // total will always be less than or equal to the limit
             postResourcesAndUpdateCache(resources, offset, startTime, endTime, resourceType);
             getAllResourcesForTimeRange(response, total, limit, offset, startTime, endTime,
                 resourceType);
-            return true;
           }
         }
+        return true;
       } else if (responseCode >= 400) {
         logger.error("API_ERROR: Hit error with response code- " + responseCode);
       }
