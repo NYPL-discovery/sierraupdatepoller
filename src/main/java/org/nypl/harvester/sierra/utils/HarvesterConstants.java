@@ -30,5 +30,6 @@ public final class HarvesterConstants {
   public static final String ITEMS = "items";
   public static final String APP_OPTIONAL_CACHE_RESOURCE = "optionalCacheResource";
   public static final String APP_RESOURCE_TYPE = "resourceType";
+  public static final String IS_PROCESSED = "isProcessed";
 
 }

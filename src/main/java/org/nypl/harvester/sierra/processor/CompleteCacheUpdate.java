@@ -28,18 +28,25 @@ public class CompleteCacheUpdate implements Processor {
   public void process(Exchange exchange) throws SierraHarvesterException {
     String resourceWhoseCacheHasToBeUpdated = null;
     try {
-      resourceWhoseCacheHasToBeUpdated = exchange.getIn().getBody(String.class);
+      Map<String, Object> resourceTypeAndResourceProcessedStatus =
+          exchange.getIn().getBody(Map.class);
 
-      final String resource = resourceWhoseCacheHasToBeUpdated;
+      final String resource =
+          (String) resourceTypeAndResourceProcessedStatus.get(HarvesterConstants.APP_RESOURCE_TYPE);
+      Optional<Boolean> resourceProcessingStatus = Optional.ofNullable(
+          (Boolean) resourceTypeAndResourceProcessedStatus.get(HarvesterConstants.IS_PROCESSED));
+      
+      if(resourceProcessingStatus.isPresent()){
+        Boolean status = resourceProcessingStatus.get();
+        retryTemplate.execute(new RetryCallback<Boolean, SierraHarvesterException>() {
 
-      retryTemplate.execute(new RetryCallback<Boolean, SierraHarvesterException>() {
+          @Override
+          public Boolean doWithRetry(RetryContext context) throws SierraHarvesterException {
+            return updateCache(resource, status);
+          }
 
-        @Override
-        public Boolean doWithRetry(RetryContext context) throws SierraHarvesterException {
-          return updateCache(resource);
-        }
-
-      });
+        });
+      }
     } catch (Exception e) {
       logger.error(
           resourceWhoseCacheHasToBeUpdated
@@ -52,19 +59,16 @@ public class CompleteCacheUpdate implements Processor {
     }
   }
 
-  private Boolean updateCache(String resource) throws SierraHarvesterException {
+  private Boolean updateCache(String resource, Boolean resourceProcessingStatus)
+      throws SierraHarvesterException {
     try {
-      Map<String, String> cacheProperties = new CacheProcessor().getHashAllValsInCache(resource);
-      if (Optional.ofNullable(cacheProperties.get(HarvesterConstants.REDIS_KEY_END_TIME_DELTA))
-          .isPresent()
-          && Optional
-              .ofNullable(cacheProperties.get(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET))
-              .isPresent()
-          && Optional.ofNullable(cacheProperties.get(HarvesterConstants.REDIS_KEY_START_TIME_DELTA))
-              .isPresent())
+      if(resourceProcessingStatus){
         new CacheProcessor().setHashSingleValInCache(resource,
             HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE, Boolean.toString(true));
-      return true;
+        logger.info("Completed updating cache");
+        return true;
+      }else
+        return false;
     } catch (Exception e) {
       logger.error(
           resource + " : Error occurred while getting last updated time from redis server - ", e);

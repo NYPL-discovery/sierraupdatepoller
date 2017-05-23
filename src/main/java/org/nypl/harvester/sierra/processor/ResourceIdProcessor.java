@@ -67,9 +67,13 @@ public class ResourceIdProcessor implements Processor {
       Optional<CacheResource> cacheResource = (Optional<CacheResource>) exchangeContents
           .get(HarvesterConstants.APP_OPTIONAL_CACHE_RESOURCE);
 
-      processResourcesAndUpdateCache(cacheResource, resourceType);
+      Boolean status = processResourcesAndUpdateCache(cacheResource, resourceType);
 
-      exchange.getIn().setBody(resourceType);
+      Map<String, Object> resourceTypeAndProcessedStatus = new HashMap<>();
+      resourceTypeAndProcessedStatus.put(HarvesterConstants.APP_RESOURCE_TYPE, resourceType);
+      resourceTypeAndProcessedStatus.put(HarvesterConstants.IS_PROCESSED, status);
+
+      exchange.getIn().setBody(resourceTypeAndProcessedStatus);
     } catch (NullPointerException npe) {
       logger.error("Hit null pointer exception while getting resource ids that got updated - ",
           npe);
@@ -79,7 +83,7 @@ public class ResourceIdProcessor implements Processor {
     }
   }
 
-  private void processResourcesAndUpdateCache(Optional<CacheResource> optionalCacheResource,
+  private boolean processResourcesAndUpdateCache(Optional<CacheResource> optionalCacheResource,
       String resourceType) throws SierraHarvesterException {
     List<Resource> resources = new ArrayList<>();
     CacheResource cacheResource = null;
@@ -123,15 +127,18 @@ public class ResourceIdProcessor implements Processor {
           if (total < limit) {
             offset = total;
             postResourcesAndUpdateCache(resources, offset, startTime, endTime, resourceType);
+            return true;
           } else { // total will always be less than or equal to the limit
             postResourcesAndUpdateCache(resources, offset, startTime, endTime, resourceType);
             getAllResourcesForTimeRange(response, total, limit, offset, startTime, endTime,
                 resourceType);
+            return true;
           }
         }
       } else if (responseCode >= 400) {
         logger.error("API_ERROR: Hit error with response code- " + responseCode);
       }
+      return false;
     } catch (JsonParseException jsonParseException) {
       logger.error(cacheResource.getResourceType()
           + " : Hit a json parse exception while parsing json response from resources " + "api - ",
