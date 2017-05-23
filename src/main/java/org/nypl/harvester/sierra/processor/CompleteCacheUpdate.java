@@ -35,8 +35,8 @@ public class CompleteCacheUpdate implements Processor {
           (String) resourceTypeAndResourceProcessedStatus.get(HarvesterConstants.APP_RESOURCE_TYPE);
       Optional<Boolean> resourceProcessingStatus = Optional.ofNullable(
           (Boolean) resourceTypeAndResourceProcessedStatus.get(HarvesterConstants.IS_PROCESSED));
-      
-      if(resourceProcessingStatus.isPresent()){
+
+      if (resourceProcessingStatus.isPresent()) {
         Boolean status = resourceProcessingStatus.get();
         retryTemplate.execute(new RetryCallback<Boolean, SierraHarvesterException>() {
 
@@ -62,12 +62,12 @@ public class CompleteCacheUpdate implements Processor {
   private Boolean updateCache(String resource, Boolean resourceProcessingStatus)
       throws SierraHarvesterException {
     try {
-      if(resourceProcessingStatus){
+      if (resourceProcessingStatus) {
         new CacheProcessor().setHashSingleValInCache(resource,
             HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE, Boolean.toString(true));
         logger.info("Completed updating cache");
         return true;
-      }else
+      } else
         return false;
     } catch (Exception e) {
       logger.error(

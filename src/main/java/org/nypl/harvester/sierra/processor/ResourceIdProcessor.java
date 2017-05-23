@@ -132,6 +132,9 @@ public class ResourceIdProcessor implements Processor {
             getAllResourcesForTimeRange(response, total, limit, offset, startTime, endTime,
                 resourceType);
           }
+        } else { // when there are no updates total will not be there, but we want to update start
+                 // and end time of cache
+          postResourcesAndUpdateCache(resources, 0, startTime, endTime, resourceType);
         }
         return true;
       } else if (responseCode >= 400) {
