@@ -23,6 +23,7 @@ import org.apache.camel.ProducerTemplate;
 import org.apache.camel.http.common.HttpOperationFailedException;
 import org.nypl.harvester.sierra.cache.CacheProcessor;
 import org.nypl.harvester.sierra.cache.CacheResource;
+import org.nypl.harvester.sierra.config.BaseConfig;
 import org.nypl.harvester.sierra.config.EnvironmentConfig;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.model.Resource;
@@ -50,12 +51,16 @@ public class ResourceIdProcessor implements Processor {
 
   private Map<String, StreamDataModel> streamNameAndDataModel;
 
+  private BaseConfig baseConfig;
+
   public ResourceIdProcessor(String token, ProducerTemplate producerTemplate,
-      RetryTemplate retryTemplate, Map<String, StreamDataModel> streamNameAndDataModel) {
+      RetryTemplate retryTemplate, Map<String, StreamDataModel> streamNameAndDataModel,
+      BaseConfig baseConfig) {
     this.token = token;
     this.template = producerTemplate;
     this.retryTemplate = retryTemplate;
     this.streamNameAndDataModel = streamNameAndDataModel;
+    this.baseConfig = baseConfig;
   }
 
   @Override
@@ -342,7 +347,7 @@ public class ResourceIdProcessor implements Processor {
       String startTimeDelta, String endTimeDelta, String resourceType)
       throws SierraHarvesterException {
     for (Entry<String, StreamDataModel> entry : streamNameAndDataModel.entrySet()) {
-      ResourcePoster poster = new StreamPoster(entry.getKey(), entry.getValue(), retryTemplate);
+      ResourcePoster poster = new StreamPoster(entry.getKey(), entry.getValue(), baseConfig);
       poster.postResources(template, resources, resourceType);
     }
     Map<String, String> cacheUpdateStatus = new HashMap<>();
