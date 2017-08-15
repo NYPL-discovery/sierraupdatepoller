@@ -10,6 +10,7 @@ import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.RouteBuilder;
 import org.nypl.harvester.sierra.api.utils.OAuth2Client;
 import org.nypl.harvester.sierra.api.utils.TokenProperties;
+import org.nypl.harvester.sierra.config.BaseConfig;
 import org.nypl.harvester.sierra.config.EnvironmentConfig;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.model.StreamDataModel;
@@ -38,6 +39,9 @@ public class RouteBuilderIdPoller extends RouteBuilder {
   @Autowired
   private ProducerTemplate template;
 
+  @Autowired
+  private BaseConfig baseConfig;
+
   @Override
   public void configure() throws Exception {
 
@@ -60,8 +64,8 @@ public class RouteBuilderIdPoller extends RouteBuilder {
         .process(new CacheResourceMonitor(retryTemplate, EnvironmentConfig.resourceType))
         // send the resource for processing (getting full bib/item data from sierra and posting to
         // kinesis)
-        .process(
-            new ResourceIdProcessor(getToken(), template, retryTemplate, streamNameAndDataModel))
+        .process(new ResourceIdProcessor(getToken(), template, retryTemplate,
+            streamNameAndDataModel, baseConfig))
         // update redis as this iteration is complete
         .process(new CompleteCacheUpdate(retryTemplate));
   }
