@@ -86,6 +86,15 @@ On the redis cache the values will be stored as follows:
 The advantage of this is that if the app fails in between, when it starts back again, it knows where to start from looking at the isCompleted flag.
 
 ## Usage
+
 On IDE:
    * STS - Choose Run As - Run as a spring boot application
-   * As a jar file - mvn clean package will create jar file and start the app. To just create the jar file - mvn clean package -DskipTests
+   * As a jar file:
+
+    * `mvn clean package` will create jar file and start the app.
+
+    * `mvn clean package -DskipTests` to just create the jar file
+
+## Deploying To Elastic Beanstalk
+
+TODO: Fill this in    
