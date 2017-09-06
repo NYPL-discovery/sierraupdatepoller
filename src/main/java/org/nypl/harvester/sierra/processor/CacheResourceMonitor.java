@@ -52,10 +52,9 @@ public class CacheResourceMonitor implements Processor {
 
   public Optional<CacheResource> getCacheResource() throws SierraHarvesterException {
     try {
-      Optional<Map<String, String>> optionalCacheResource =
-          Optional.ofNullable(new CacheProcessor().getHashAllValsInCache(resourceType));
-      if (optionalCacheResource.isPresent() && optionalCacheResource.get().size() > 0) {
-        Map<String, String> cacheProperties = optionalCacheResource.get();
+      Optional<Map<String, String>> optionalCacheProperties = getPropertiesFromProcessor();
+      if (optionalCacheProperties.isPresent() && optionalCacheProperties.get().size() > 0) {
+        Map<String, String> cacheProperties = optionalCacheProperties.get();
         if (Optional.ofNullable(cacheProperties.get(HarvesterConstants.REDIS_KEY_END_TIME_DELTA))
             .isPresent()
             && Optional
@@ -88,6 +87,15 @@ public class CacheResourceMonitor implements Processor {
           resourceType + " : Error occurred while getting cached resource from redis server - ", e);
       throw new SierraHarvesterException(
           "Error occurred while getting cached resource from redis server", resourceType);
+    }
+  }
+
+  public Optional<Map<String, String>> getPropertiesFromProcessor()
+      throws SierraHarvesterException {
+    try {
+      return Optional.ofNullable(new CacheProcessor().getHashAllValsInCache(resourceType));
+    } catch (Exception e) {
+      throw new SierraHarvesterException("Couldn't get response from CacheProcessor", resourceType);
     }
   }
 
