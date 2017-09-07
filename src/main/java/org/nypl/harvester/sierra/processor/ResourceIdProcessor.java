@@ -53,6 +53,12 @@ public class ResourceIdProcessor implements Processor {
 
   private BaseConfig baseConfig;
 
+  private static final String START_TIME = "startTime";
+  private static final String END_TIME = "endTime";
+  private static final String OFFSET = "offset";
+  private static final String LIMIT = "limit";
+  private static final String TOTAL = "total";
+
   public ResourceIdProcessor(String token, ProducerTemplate producerTemplate,
       RetryTemplate retryTemplate, Map<String, StreamDataModel> streamNameAndDataModel,
       BaseConfig baseConfig) {
@@ -88,29 +94,18 @@ public class ResourceIdProcessor implements Processor {
     }
   }
 
-  private boolean processResourcesAndUpdateCache(Optional<CacheResource> optionalCacheResource,
+  public boolean processResourcesAndUpdateCache(Optional<CacheResource> optionalCacheResource,
       String resourceType) throws SierraHarvesterException {
     List<Resource> resources = new ArrayList<>();
-    CacheResource cacheResource = null;
-    String startTime;
     try {
-      if (optionalCacheResource.isPresent()) {
-        cacheResource = optionalCacheResource.get();
-        startTime = validateLastUpdatedTime(cacheResource.getEndTime());
-      } else {
-        startTime = validateLastUpdatedTime(null);
-      }
-      int offset = 0;
-      int limit = 500;
-      int total = 0;
+      Map<String, Object> sierraApiQueryParams =
+          getSierraAPIQueryParams(optionalCacheResource, resourceType);
 
-      String endTime = getCurrentTimeInZuluTimeFormat();
-
-      if (optionalCacheResource.isPresent() && !cacheResource.getIsDone()) {
-        offset = cacheResource.getOffset();
-        startTime = cacheResource.getStartTime();
-        endTime = cacheResource.getEndTime();
-      }
+      String startTime = (String) sierraApiQueryParams.get(START_TIME);
+      String endTime = (String) sierraApiQueryParams.get(END_TIME);
+      int offset = (int) sierraApiQueryParams.get(OFFSET);
+      int limit = (int) sierraApiQueryParams.get(LIMIT);
+      int total = (int) sierraApiQueryParams.get(TOTAL);
 
       Map<String, Object> response =
           getResultsFromSierra(startTime, endTime, offset, limit, resourceType);
@@ -147,7 +142,7 @@ public class ResourceIdProcessor implements Processor {
       }
       return false;
     } catch (JsonParseException jsonParseException) {
-      logger.error(cacheResource.getResourceType()
+      logger.error(resourceType
           + " : Hit a json parse exception while parsing json response from resources " + "api - ",
           jsonParseException);
 
@@ -160,10 +155,62 @@ public class ResourceIdProcessor implements Processor {
           "JsonMappingException while for api response " + "- " + jsonMappingException.getMessage(),
           resourceType);
     } catch (IOException ioe) {
-      logger.error(cacheResource.getResourceType() + " : Hit an IOException - ", ioe);
+      logger.error(resourceType + " : Hit an IOException - ", ioe);
 
       throw new SierraHarvesterException(
           "IOException while for api response " + "- " + ioe.getMessage(), resourceType);
+    }
+  }
+
+  public Map<String, Object> getSierraAPIQueryParams(Optional<CacheResource> optionalCacheResource,
+      String resourceType) throws SierraHarvesterException {
+    try {
+      String startTime = getStartTime(optionalCacheResource, resourceType);
+
+      int offset = 0;
+      int limit = 500;
+      int total = 0;
+
+      String endTime = getCurrentTimeInZuluTimeFormat();
+
+      if (optionalCacheResource.isPresent() && !optionalCacheResource.get().getIsDone()) {
+        offset = optionalCacheResource.get().getOffset();
+        startTime = optionalCacheResource.get().getStartTime();
+        endTime = optionalCacheResource.get().getEndTime();
+      }
+
+      Map<String, Object> queryParams = new HashMap<>();
+      queryParams.put(START_TIME, startTime);
+      queryParams.put(END_TIME, endTime);
+      queryParams.put(TOTAL, total);
+      queryParams.put(LIMIT, limit);
+      queryParams.put(OFFSET, offset);
+      return queryParams;
+    } catch (Exception e) {
+      throw new SierraHarvesterException("Unable to get query params for sierra api - ",
+          resourceType);
+    }
+  }
+
+  public String getStartTime(Optional<CacheResource> optionalCacheResource, String resourceType)
+      throws SierraHarvesterException {
+    try {
+      if (optionalCacheResource.isPresent()) {
+        CacheResource cacheResource = optionalCacheResource.get();
+        return cacheResource.getEndTime();
+      } else {
+        Date currentDate = new Date();
+
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("Zulu"));
+
+        logger.info("Last updated time: " + dateFormat.format(currentDate).concat("T00:00:00Z"));
+
+        return dateFormat.format(currentDate).concat("T00:00:00Z");
+      }
+    } catch (Exception e) {
+      throw new SierraHarvesterException("Unable to get start time from cache resource",
+          resourceType);
     }
   }
 
@@ -235,7 +282,7 @@ public class ResourceIdProcessor implements Processor {
     }
   }
 
-  private Map<String, Object> getResultsFromSierra(String startDdate, String endDate, int offset,
+  public Map<String, Object> getResultsFromSierra(String startDdate, String endDate, int offset,
       int limit, String resourceType) throws SierraHarvesterException {
     try {
       Exchange apiResponse =
@@ -343,7 +390,7 @@ public class ResourceIdProcessor implements Processor {
     }
   }
 
-  private void postResourcesAndUpdateCache(List<Resource> resources, int offset,
+  private boolean postResourcesAndUpdateCache(List<Resource> resources, int offset,
       String startTimeDelta, String endTimeDelta, String resourceType)
       throws SierraHarvesterException {
     for (Entry<String, StreamDataModel> entry : streamNameAndDataModel.entrySet()) {
@@ -358,21 +405,7 @@ public class ResourceIdProcessor implements Processor {
     cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_START_TIME_DELTA, startTimeDelta);
     cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_END_TIME_DELTA, endTimeDelta);
     new CacheProcessor().setHashAllValsInCache(resourceType, cacheUpdateStatus);
-  }
-
-  private String validateLastUpdatedTime(String lastUpdatedTime) {
-    if (lastUpdatedTime == null) {
-      Date currentDate = new Date();
-
-      DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-      dateFormat.setTimeZone(TimeZone.getTimeZone("Zulu"));
-
-      logger.info("Last updated time: " + dateFormat.format(currentDate).concat("T00:00:00Z"));
-
-      return dateFormat.format(currentDate).concat("T00:00:00Z");
-    } else {
-      return lastUpdatedTime;
-    }
+    return true;
   }
 
   private String getCurrentTimeInZuluTimeFormat() {
