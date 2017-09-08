@@ -1,5 +1,7 @@
 # SierraUpdatePoller
 
+[![Coverage Status](https://coveralls.io/repos/github/NYPL-discovery/sierraupdatepoller/badge.svg?branch=master)](https://coveralls.io/github/NYPL-discovery/sierraupdatepoller?branch=master)
+
 This package is intended to be used to retrieve Bib/Item IDs that have been updated by polling the Sierra API and then posting those IDs to a Kinesis stream for further processing.
 
 ## Installation
