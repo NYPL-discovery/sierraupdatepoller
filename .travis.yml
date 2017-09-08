@@ -1,6 +1,7 @@
 language: java
 
-script: "mvn cobertura:cobertura"
+install:
+ - mvn clean package
 
 after_success:
- - bash <(curl -s https://codecov.io/bash) -t f88f9521-30aa-4f4a-bff4-204ed26cd1fb
+ - mvn clean test jacoco:report coveralls:report
