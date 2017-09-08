@@ -117,24 +117,23 @@ public class ResourceIdProcessor implements Processor {
         Map<String, Object> apiResponse = new ObjectMapper().readValue(
             (String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
 
-        Optional<Integer> optionalTotal = Optional
-            .ofNullable((Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL));
-
-        if (optionalTotal.isPresent()) {
+        if (hasThereBeenAnyUpdatesInSierra(apiResponse, resourceType)) {
           total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
           resources = addResourcesFromAPIResponse(apiResponse, resources, resourceType);
 
           if (total < limit) {
             offset = total;
-            postResourcesAndUpdateCache(resources, offset, startTime, endTime, resourceType);
+            postResourcesIfAnyAndUpdateCache(Optional.of(resources), offset, startTime, endTime,
+                resourceType);
           } else { // total will always be less than or equal to the limit
-            postResourcesAndUpdateCache(resources, offset, startTime, endTime, resourceType);
+            postResourcesIfAnyAndUpdateCache(Optional.of(resources), offset, startTime, endTime,
+                resourceType);
             getAllResourcesForTimeRange(response, total, limit, offset, startTime, endTime,
                 resourceType);
           }
         } else { // when there are no updates total will not be there, but we want to update start
                  // and end time of cache
-          postResourcesAndUpdateCache(resources, 0, startTime, endTime, resourceType);
+          postResourcesIfAnyAndUpdateCache(Optional.empty(), 0, startTime, endTime, resourceType);
         }
         return true;
       } else if (responseCode >= 400) {
@@ -159,6 +158,22 @@ public class ResourceIdProcessor implements Processor {
 
       throw new SierraHarvesterException(
           "IOException while for api response " + "- " + ioe.getMessage(), resourceType);
+    }
+  }
+
+  public boolean hasThereBeenAnyUpdatesInSierra(Map<String, Object> apiResponse,
+      String resourceType) throws SierraHarvesterException {
+    try {
+      Optional<Integer> optionalTotal = Optional
+          .ofNullable((Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL));
+      if (optionalTotal.isPresent()) {
+        return true;
+      } else
+        return false;
+    } catch (Exception e) {
+      throw new SierraHarvesterException(
+          "Error occurred while checking api response to see if there has been any updates",
+          resourceType);
     }
   }
 
@@ -235,7 +250,8 @@ public class ResourceIdProcessor implements Processor {
 
           resources = addResourcesFromAPIResponse(apiResponse, resources, resourceType);
 
-          postResourcesAndUpdateCache(resources, offset, startTime, endTime, resourceType);
+          postResourcesIfAnyAndUpdateCache(Optional.of(resources), offset, startTime, endTime,
+              resourceType);
         } else if (responseCode >= 400) {
           logger.error("API_ERROR: Hit error with response code- " + responseCode);
         }
@@ -390,12 +406,15 @@ public class ResourceIdProcessor implements Processor {
     }
   }
 
-  private boolean postResourcesAndUpdateCache(List<Resource> resources, int offset,
-      String startTimeDelta, String endTimeDelta, String resourceType)
+  private boolean postResourcesIfAnyAndUpdateCache(Optional<List<Resource>> optionalResources,
+      int offset, String startTimeDelta, String endTimeDelta, String resourceType)
       throws SierraHarvesterException {
-    for (Entry<String, StreamDataModel> entry : streamNameAndDataModel.entrySet()) {
-      ResourcePoster poster = new StreamPoster(entry.getKey(), entry.getValue(), baseConfig);
-      poster.postResources(template, resources, resourceType);
+    if (optionalResources.isPresent()) {
+      List<Resource> resources = optionalResources.get();
+      for (Entry<String, StreamDataModel> entry : streamNameAndDataModel.entrySet()) {
+        ResourcePoster poster = new StreamPoster(entry.getKey(), entry.getValue(), baseConfig);
+        poster.postResources(template, resources, resourceType);
+      }
     }
     Map<String, String> cacheUpdateStatus = new HashMap<>();
     cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET,

@@ -128,4 +128,13 @@ public class ResourceIdProcessorTest {
         "mockResourceType"));
   }
 
+  @Test
+  public void testHasThereBeenAnyUpdatesInSierra() throws SierraHarvesterException {
+    Map<String, Object> mockApiResponse = new HashMap<>();
+    mockApiResponse.put(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL, 100);
+    boolean isThereAnyUpdate = new ResourceIdProcessor(null, null, null, null, null)
+        .hasThereBeenAnyUpdatesInSierra(mockApiResponse, "mockResourceType");
+    Assert.assertTrue(isThereAnyUpdate);
+  }
+
 }
