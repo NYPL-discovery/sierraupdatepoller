@@ -38,7 +38,7 @@ public class StreamPoster implements ResourcePoster {
   }
 
   @Override
-  public void postResources(ProducerTemplate template, List<Resource> resources,
+  public Integer postResources(ProducerTemplate template, List<Resource> resources,
       String resourceType) throws SierraHarvesterException {
     try {
       Schema schema = AvroSerializer.getSchema(this.getStreamDataModel());
@@ -52,10 +52,11 @@ public class StreamPoster implements ResourcePoster {
         avroRecords.add(avroRecord);
       }
 
-      processRecordsForStream(avroRecords, resourceType);
+      Integer numOfResourcesSent = processRecordsForStream(avroRecords, resourceType);
 
       logger.info(resourceType + " : Sent " + resources.size() + " resources to Kinesis stream: "
           + getStreamName());
+      return numOfResourcesSent;
     } catch (Exception e) {
       logger.error(resourceType + " : Error occurred while sending resources to kinesis - ", e);
       throw new SierraHarvesterException(
@@ -63,7 +64,7 @@ public class StreamPoster implements ResourcePoster {
     }
   }
 
-  public void processRecordsForStream(List<byte[]> avroRecords, String resourceType)
+  public Integer processRecordsForStream(List<byte[]> avroRecords, String resourceType)
       throws SierraHarvesterException {
     try {
       List<List<byte[]>> listOfSplitRecords =
@@ -71,6 +72,7 @@ public class StreamPoster implements ResourcePoster {
       for (List<byte[]> splitAvroRecords : listOfSplitRecords) {
         sendToKinesis(splitAvroRecords, resourceType);
       }
+      return listOfSplitRecords.size();
     } catch (Exception e) {
       logger.error("Error occurred while sending items to kinesis - ", e);
       throw new SierraHarvesterException(

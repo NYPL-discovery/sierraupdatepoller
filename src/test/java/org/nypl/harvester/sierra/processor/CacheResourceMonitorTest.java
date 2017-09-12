@@ -11,30 +11,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.mockito.Mockito;
+import org.nypl.harvester.sierra.TestEnvironment;
 import org.nypl.harvester.sierra.cache.CacheResource;
 import org.nypl.harvester.sierra.config.EnvironmentVariableNames;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
 
-public class CacheResourceMonitorTest {
-
-  @Rule
-  public final EnvironmentVariables envVariables = new EnvironmentVariables();
-
-  public void setMockEnvVariables() {
-    envVariables.set(EnvironmentVariableNames.RESOURCE_TYPE, "mockResourceType");
-    envVariables.set(EnvironmentVariableNames.ACCESS_TOKEN_URI, "mockToeknUri");
-    envVariables.set(EnvironmentVariableNames.CLIENT_ID, "mockClientId");
-    envVariables.set(EnvironmentVariableNames.CLIENT_SECRET, "mockClientSecret");
-    envVariables.set(EnvironmentVariableNames.GRANT_TYPE, "mockGrantType");
-    envVariables.set(EnvironmentVariableNames.KINESIS_RESOURCE_RETRIEVAL_STREAM,
-        "mockKinesisStream");
-    envVariables.set(EnvironmentVariableNames.KINESIS_RESOURCE_UPDATE_STREAM, "mockKinesisStream");
-    envVariables.set(EnvironmentVariableNames.POLL_DELAY, "mockPollDelay");
-    envVariables.set(EnvironmentVariableNames.REDIS_HOST, "mockRedisHost");
-    envVariables.set(EnvironmentVariableNames.REDIS_PORT, "12345");
-    envVariables.set(EnvironmentVariableNames.SIERRA_API, "mockSierraApi");
-  }
+public class CacheResourceMonitorTest extends TestEnvironment {
 
   @Test
   public void testEmptyCacheResource() throws SierraHarvesterException {
@@ -54,7 +37,6 @@ public class CacheResourceMonitorTest {
   public void testPartialCacheResource() throws SierraHarvesterException {
     CacheResourceMonitor cacheResourceMonitor = new CacheResourceMonitor(null, "something");
     CacheResourceMonitor spyCacheResourceMonitor = Mockito.spy(cacheResourceMonitor);
-    setMockEnvVariables();
     Map<String, String> hashValsForCacheResource = new HashMap<>();
     hashValsForCacheResource.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET, "12345");
     hashValsForCacheResource.put(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE,
@@ -75,7 +57,6 @@ public class CacheResourceMonitorTest {
 
     CacheResourceMonitor cacheResourceMonitor = new CacheResourceMonitor(null, "something");
     CacheResourceMonitor spyCacheResourceMonitor = Mockito.spy(cacheResourceMonitor);
-    setMockEnvVariables();
 
     Map<String, String> hashValsForCacheResource = new HashMap<>();
     hashValsForCacheResource.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET, mockOffset);

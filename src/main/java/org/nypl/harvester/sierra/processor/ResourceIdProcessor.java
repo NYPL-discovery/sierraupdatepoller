@@ -10,10 +10,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TimeZone;
 
 import org.apache.camel.Exchange;
@@ -96,7 +98,6 @@ public class ResourceIdProcessor implements Processor {
 
   public boolean processResourcesAndUpdateCache(Optional<CacheResource> optionalCacheResource,
       String resourceType) throws SierraHarvesterException {
-    List<Resource> resources = new ArrayList<>();
     try {
       Map<String, Object> sierraApiQueryParams =
           getSierraAPIQueryParams(optionalCacheResource, resourceType);
@@ -114,28 +115,14 @@ public class ResourceIdProcessor implements Processor {
           (Integer) response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE);
 
       if (responseCode == 200) {
-        Map<String, Object> apiResponse = new ObjectMapper().readValue(
-            (String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
-
-        if (hasThereBeenAnyUpdatesInSierra(apiResponse, resourceType)) {
-          total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
-          resources = addResourcesFromAPIResponse(apiResponse, resources, resourceType);
-
-          if (total < limit) {
-            offset = total;
-            postResourcesIfAnyAndUpdateCache(Optional.of(resources), offset, startTime, endTime,
-                resourceType);
-          } else { // total will always be less than or equal to the limit
-            postResourcesIfAnyAndUpdateCache(Optional.of(resources), offset, startTime, endTime,
-                resourceType);
-            getAllResourcesForTimeRange(response, total, limit, offset, startTime, endTime,
-                resourceType);
-          }
-        } else { // when there are no updates total will not be there, but we want to update start
-                 // and end time of cache
-          postResourcesIfAnyAndUpdateCache(Optional.empty(), 0, startTime, endTime, resourceType);
+        if (processApiResponseWhenUpdatesAreAvailable(response, total, limit, offset, startTime,
+            endTime, resourceType))
+          return true;
+        else { // when there are no updates total will not be there, but we want to update start
+               // and end time of cache
+          return postResourcesIfAnyAndUpdateCache(Optional.empty(), 0, startTime, endTime,
+              resourceType);
         }
-        return true;
       } else if (responseCode >= 400) {
         logger.error("API_ERROR: Hit error with response code- " + responseCode);
       }
@@ -158,22 +145,6 @@ public class ResourceIdProcessor implements Processor {
 
       throw new SierraHarvesterException(
           "IOException while for api response " + "- " + ioe.getMessage(), resourceType);
-    }
-  }
-
-  public boolean hasThereBeenAnyUpdatesInSierra(Map<String, Object> apiResponse,
-      String resourceType) throws SierraHarvesterException {
-    try {
-      Optional<Integer> optionalTotal = Optional
-          .ofNullable((Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL));
-      if (optionalTotal.isPresent()) {
-        return true;
-      } else
-        return false;
-    } catch (Exception e) {
-      throw new SierraHarvesterException(
-          "Error occurred while checking api response to see if there has been any updates",
-          resourceType);
     }
   }
 
@@ -202,8 +173,9 @@ public class ResourceIdProcessor implements Processor {
       queryParams.put(OFFSET, offset);
       return queryParams;
     } catch (Exception e) {
-      throw new SierraHarvesterException("Unable to get query params for sierra api - ",
-          resourceType);
+      logger.error("Error - ", e);
+      throw new SierraHarvesterException(
+          "Unable to get query params for sierra api - " + e.getMessage(), resourceType);
     }
   }
 
@@ -224,10 +196,91 @@ public class ResourceIdProcessor implements Processor {
         return dateFormat.format(currentDate).concat("T00:00:00Z");
       }
     } catch (Exception e) {
-      throw new SierraHarvesterException("Unable to get start time from cache resource",
+      logger.error("Error - ", e);
+      throw new SierraHarvesterException(
+          "Unable to get start time from cache resource - " + e.getMessage(), resourceType);
+    }
+  }
+
+  public boolean processApiResponseWhenUpdatesAreAvailable(Map<String, Object> response, int total,
+      int limit, int offset, String startTime, String endTime, String resourceType)
+      throws SierraHarvesterException, JsonParseException, JsonMappingException, IOException {
+    try {
+      Map<String, Object> apiResponseBody = new ObjectMapper()
+          .readValue((String) response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY), Map.class);
+
+      if (hasThereBeenAnyUpdatesInSierra(apiResponseBody, resourceType)) {
+        return handleSierraUpdates(total, apiResponseBody, response, limit, offset, startTime,
+            endTime, resourceType);
+      } else {
+        return false;
+      }
+    } catch (Exception e) {
+      logger.error("Error - ", e);
+      throw new SierraHarvesterException(
+          "Error occurred while processing api response - " + e.getMessage(), resourceType);
+    }
+  }
+
+  public boolean hasThereBeenAnyUpdatesInSierra(Map<String, Object> apiResponse,
+      String resourceType) throws SierraHarvesterException {
+    try {
+      Optional<Integer> optionalTotal = Optional
+          .ofNullable((Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL));
+      if (optionalTotal.isPresent()) {
+        return true;
+      } else
+        return false;
+    } catch (Exception e) {
+      logger.error("Error - ", e);
+      throw new SierraHarvesterException(
+          "Error occurred while checking api response to see if there has been any updates - "
+              + e.getMessage(),
           resourceType);
     }
   }
+
+  public boolean handleSierraUpdates(int total, Map<String, Object> apiResponseBody,
+      Map<String, Object> response, int limit, int offset, String startTime, String endTime,
+      String resourceType) throws SierraHarvesterException {
+    try {
+      total = (Integer) apiResponseBody.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
+      List<Resource> resources = addResourcesFromAPIResponse(apiResponseBody, resourceType);
+
+      if (noMoreResourcesLeftToGetfromSierra(total, limit, resourceType)) {
+        offset = total;
+        return postResourcesIfAnyAndUpdateCache(Optional.of(resources), offset, startTime, endTime,
+            resourceType);
+      } else {
+        postResourcesIfAnyAndUpdateCache(Optional.of(resources), offset, startTime, endTime,
+            resourceType);
+        getAllResourcesForTimeRange(response, total, limit, offset, startTime, endTime,
+            resourceType);
+        return true;
+      }
+    } catch (Exception e) {
+      logger.error("Error - ", e);
+      throw new SierraHarvesterException(
+          "Unable to process sierra updates that have been received - " + e.getMessage(),
+          resourceType);
+    }
+  }
+
+  public boolean noMoreResourcesLeftToGetfromSierra(int total, int limit, String resourceType)
+      throws SierraHarvesterException {
+    try {
+      if (total < limit)
+        return true;
+      else
+        return false;
+    } catch (Exception e) {
+      logger.error("Error - ", e);
+      throw new SierraHarvesterException(
+          "Error while validating sierra response for more resources - " + e.getMessage(),
+          resourceType);
+    }
+  }
+
 
   private void getAllResourcesForTimeRange(Map<String, Object> response, int total, int limit,
       int offset, String startTime, String endTime, String resourceType)
@@ -248,7 +301,7 @@ public class ResourceIdProcessor implements Processor {
 
           total = (Integer) apiResponse.get(HarvesterConstants.SIERRA_API_RESPONSE_TOTAL);
 
-          resources = addResourcesFromAPIResponse(apiResponse, resources, resourceType);
+          resources = addResourcesFromAPIResponse(apiResponse, resourceType);
 
           postResourcesIfAnyAndUpdateCache(Optional.of(resources), offset, startTime, endTime,
               resourceType);
@@ -278,8 +331,9 @@ public class ResourceIdProcessor implements Processor {
   }
 
   private List<Resource> addResourcesFromAPIResponse(Map<String, Object> apiResponse,
-      List<Resource> resources, String resourceType) throws SierraHarvesterException {
+      String resourceType) throws SierraHarvesterException {
     try {
+      List<Resource> resources = new ArrayList<>();
       List<Map<String, Object>> entries = (List<Map<String, Object>>) apiResponse
           .get(HarvesterConstants.SIERRA_API_RESPONSE_ENTRIES);
 
@@ -406,16 +460,40 @@ public class ResourceIdProcessor implements Processor {
     }
   }
 
-  private boolean postResourcesIfAnyAndUpdateCache(Optional<List<Resource>> optionalResources,
+  public boolean postResourcesIfAnyAndUpdateCache(Optional<List<Resource>> optionalResources,
       int offset, String startTimeDelta, String endTimeDelta, String resourceType)
       throws SierraHarvesterException {
     if (optionalResources.isPresent()) {
       List<Resource> resources = optionalResources.get();
-      for (Entry<String, StreamDataModel> entry : streamNameAndDataModel.entrySet()) {
-        ResourcePoster poster = new StreamPoster(entry.getKey(), entry.getValue(), baseConfig);
-        poster.postResources(template, resources, resourceType);
-      }
+      Set<Integer> resourcesPosted = new HashSet<>();
+      Integer[] countOfResourcesPosted = postResourcesToStream(resources, resourceType);
+      for (Integer count : countOfResourcesPosted)
+        resourcesPosted.add(count);
+      if (resourcesPosted.size() > 1)
+        throw new SierraHarvesterException("Count of resources sent to streams are not same",
+            resourceType);
     }
+    Map<String, String> valuesForCacheUpdate =
+        getValuesToUpdateCache(offset, startTimeDelta, endTimeDelta);
+    updateCache(resourceType, valuesForCacheUpdate);
+    return true;
+  }
+
+  public Integer[] postResourcesToStream(List<Resource> resources, String resourceType)
+      throws SierraHarvesterException {
+    Integer[] countOfResourcesPostedInEachStream = new Integer[streamNameAndDataModel.size()];
+    int count = 0;
+    for (Entry<String, StreamDataModel> entry : streamNameAndDataModel.entrySet()) {
+      ResourcePoster poster = new StreamPoster(entry.getKey(), entry.getValue(), baseConfig);
+      countOfResourcesPostedInEachStream[count] =
+          poster.postResources(template, resources, resourceType);
+      count += 1;
+    }
+    return countOfResourcesPostedInEachStream;
+  }
+
+  public Map<String, String> getValuesToUpdateCache(int offset, String startTimeDelta,
+      String endTimeDelta) {
     Map<String, String> cacheUpdateStatus = new HashMap<>();
     cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET,
         Integer.toString(offset));
@@ -423,8 +501,11 @@ public class ResourceIdProcessor implements Processor {
         Boolean.toString(false));
     cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_START_TIME_DELTA, startTimeDelta);
     cacheUpdateStatus.put(HarvesterConstants.REDIS_KEY_END_TIME_DELTA, endTimeDelta);
+    return cacheUpdateStatus;
+  }
+
+  public void updateCache(String resourceType, Map<String, String> cacheUpdateStatus) {
     new CacheProcessor().setHashAllValsInCache(resourceType, cacheUpdateStatus);
-    return true;
   }
 
   private String getCurrentTimeInZuluTimeFormat() {
