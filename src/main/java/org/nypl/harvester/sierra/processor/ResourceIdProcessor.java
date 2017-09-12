@@ -330,7 +330,7 @@ public class ResourceIdProcessor implements Processor {
     }
   }
 
-  private List<Resource> addResourcesFromAPIResponse(Map<String, Object> apiResponse,
+  public List<Resource> addResourcesFromAPIResponse(Map<String, Object> apiResponse,
       String resourceType) throws SierraHarvesterException {
     try {
       List<Resource> resources = new ArrayList<>();
@@ -379,7 +379,7 @@ public class ResourceIdProcessor implements Processor {
 
   }
 
-  private Exchange getExchangeWithAPIResponse(String startDdate, String endDate, int offset,
+  public Exchange getExchangeWithAPIResponse(String startDdate, String endDate, int offset,
       int limit, String resourceType) throws SierraHarvesterException {
     try {
       String apiToCall =
@@ -425,7 +425,7 @@ public class ResourceIdProcessor implements Processor {
 
   }
 
-  private Map<String, Object> getResponseFromExchange(Exchange exchange, String resourceType)
+  public Map<String, Object> getResponseFromExchange(Exchange exchange, String resourceType)
       throws SierraHarvesterException {
     try {
       Message out = exchange.getOut();

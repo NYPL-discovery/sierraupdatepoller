@@ -4,17 +4,30 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
+import javax.activation.DataHandler;
+
+import org.apache.camel.Attachment;
+import org.apache.camel.Exchange;
+import org.apache.camel.InvalidPayloadException;
+import org.apache.camel.Message;
+import org.apache.camel.http.common.HttpOperationFailedException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.nypl.harvester.sierra.TestEnvironment;
 import org.nypl.harvester.sierra.cache.CacheResource;
 import org.nypl.harvester.sierra.exception.SierraHarvesterException;
+import org.nypl.harvester.sierra.model.Resource;
 import org.nypl.harvester.sierra.utils.HarvesterConstants;
+import org.springframework.http.HttpMethod;
+import org.springframework.retry.support.RetryTemplate;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -213,19 +226,85 @@ public class ResourceIdProcessorTest extends TestEnvironment {
             testValuesToUpdateCache.get(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE)),
         false);
   }
-  
-  @Test
-  public void testPostResourcesIfAnyAndUpdateCache() throws SierraHarvesterException{
+
+  @Test(expected = SierraHarvesterException.class)
+  public void testPostResourcesIfAnyAndUpdateCache() throws SierraHarvesterException {
     ResourceIdProcessor resourceIdProcessor = new ResourceIdProcessor(null, null, null, null, null);
     ResourceIdProcessor spyResourceIdProcessor = Mockito.spy(resourceIdProcessor);
     Map<String, String> mockCacheVals = new HashMap<>();
-    mockCacheVals.put(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE, Boolean.toString(false));
+    mockCacheVals.put(HarvesterConstants.REDIS_KEY_APP_RESOURCE_UPDATE_COMPLETE,
+        Boolean.toString(false));
     mockCacheVals.put(HarvesterConstants.REDIS_KEY_END_TIME_DELTA, "mockEndTime");
     mockCacheVals.put(HarvesterConstants.REDIS_KEY_LAST_UPDATED_OFFSET, Integer.toString(10));
     mockCacheVals.put(HarvesterConstants.REDIS_KEY_START_TIME_DELTA, "mockStartTime");
-    doReturn(mockCacheVals).when(spyResourceIdProcessor).getValuesToUpdateCache(10, "mockStartTime", "mockEndTime");
+    doReturn(mockCacheVals).when(spyResourceIdProcessor).getValuesToUpdateCache(10, "mockStartTime",
+        "mockEndTime");
     doNothing().when(spyResourceIdProcessor).updateCache("mockresourcetype", mockCacheVals);
-    Assert.assertTrue(spyResourceIdProcessor.postResourcesIfAnyAndUpdateCache(Optional.empty(), 10, "mockStartTime", "mockEndTime", "mockresourcetype"));
+    Assert.assertTrue(spyResourceIdProcessor.postResourcesIfAnyAndUpdateCache(Optional.empty(), 10,
+        "mockStartTime", "mockEndTime", "mockresourcetype"));
+    Resource resource1 = new Resource();
+    Resource resource2 = new Resource();
+    List<Resource> resources = new ArrayList<>();
+    resources.add(resource1);
+    resources.add(resource2);
+    Optional<List<Resource>> optionalResources = Optional.of(resources);
+    Integer[] mockCountResourcesPosted = new Integer[2];
+    mockCountResourcesPosted[0] = 100;
+    mockCountResourcesPosted[1] = 100;
+    doReturn(mockCountResourcesPosted).when(spyResourceIdProcessor).postResourcesToStream(resources,
+        "mockresourcetype");
+    doReturn(mockCacheVals).when(spyResourceIdProcessor).getValuesToUpdateCache(10, "mockStartTime",
+        "mockEndTime");
+    doNothing().when(spyResourceIdProcessor).updateCache("mockresourcetype", mockCacheVals);
+    Assert.assertTrue(spyResourceIdProcessor.postResourcesIfAnyAndUpdateCache(optionalResources, 10,
+        "mockStartTime", "mockEndTime", "mockresourcetype"));
+    mockCountResourcesPosted[0] = 100;
+    mockCountResourcesPosted[1] = 60;
+    doReturn(mockCountResourcesPosted).when(spyResourceIdProcessor).postResourcesToStream(resources,
+        "mockresourcetype");
+    doReturn(mockCacheVals).when(spyResourceIdProcessor).getValuesToUpdateCache(10, "mockStartTime",
+        "mockEndTime");
+    doNothing().when(spyResourceIdProcessor).updateCache("mockresourcetype", mockCacheVals);
+    spyResourceIdProcessor.postResourcesIfAnyAndUpdateCache(optionalResources, 10, "mockStartTime",
+        "mockEndTime", "mockresourcetype");
+  }
+
+  @Test
+  public void testGetResponseFromExchange() throws Exception {
+    setUp();
+    HttpOperationFailedException httpOperationFailedException =
+        new HttpOperationFailedException("", 200, null, null, null, "mockResponseBody");
+    exchange.setException(httpOperationFailedException);
+    Map<String, Object> response = new ResourceIdProcessor(null, null, null, null, null)
+        .getResponseFromExchange(exchange, "mockResourceType");
+    Assert.assertEquals(response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE), 200);
+    Assert.assertEquals(response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY),
+        "mockResponseBody");
+    httpOperationFailedException = null;
+    exchange.setException(httpOperationFailedException);
+    Message in = exchange.getIn();
+    in.setHeader(Exchange.HTTP_RESPONSE_CODE, 400);
+    in.setBody("mockBodyResponse");
+    exchange.setOut(in);
+    response = new ResourceIdProcessor(null, null, null, null, null)
+        .getResponseFromExchange(exchange, "mockResourceType");
+    Assert.assertEquals(response.get(HarvesterConstants.SIERRA_API_RESPONSE_HTTP_CODE), 400);
+    Assert.assertEquals(response.get(HarvesterConstants.SIERRA_API_RESPONSE_BODY),
+        "mockBodyResponse");
+  }
+
+  @Test
+  public void testAddResourcesFromAPIResponse() throws SierraHarvesterException {
+    Map<String, Object> apiResponse = new HashMap<>();
+    Map<String, Object> entry = new HashMap<>();
+    entry.put("id", "12345678");
+    List<Map<String, Object>> entries = new ArrayList<>();
+    entries.add(entry);
+    apiResponse.put("entries", entries);
+    List<Resource> resources = new ResourceIdProcessor(null, null, null, null, null)
+        .addResourcesFromAPIResponse(apiResponse, "mockResourceType");
+    Resource resource = resources.get(0);
+    Assert.assertTrue(resource.getId().equals("12345678"));
   }
 
 }

@@ -1,10 +1,11 @@
 package org.nypl.harvester.sierra;
 
+import org.apache.camel.test.junit4.ExchangeTestSupport;
 import org.junit.Rule;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.nypl.harvester.sierra.config.EnvironmentVariableNames;
 
-public class TestEnvironment {
+public class TestEnvironment extends ExchangeTestSupport {
 
   @Rule
   public final EnvironmentVariables envVariables = new EnvironmentVariables();
