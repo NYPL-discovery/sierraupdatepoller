@@ -2,28 +2,32 @@ package org.nypl.harvester.sierra.config;
 
 public final class EnvironmentConfig {
 
-  public static String resourceType = System.getenv("resourceType").trim().toLowerCase();
+  public static final Integer redisPort =
+      Integer.parseInt(System.getenv(EnvironmentVariableNames.REDIS_PORT));
 
-  public static String redisHost = System.getenv("redisHost");
+  public static final String resourceType =
+      System.getenv(EnvironmentVariableNames.RESOURCE_TYPE).trim().toLowerCase();
 
-  public static Integer redisPort = Integer.parseInt(System.getenv("redisPort"));
+  public static final String redisHost = System.getenv(EnvironmentVariableNames.REDIS_HOST);
 
-  public static String kinesisUpdateStream = System.getenv("kinesisResourceUpdateStream");
+  public static final String kinesisUpdateStream =
+      System.getenv(EnvironmentVariableNames.KINESIS_RESOURCE_UPDATE_STREAM);
 
-  public static String kinesisResourceRetrievalRequestStream =
-      System.getenv("kinesisResourceRetrievalRequestStream");
+  public static final String kinesisResourceRetrievalRequestStream =
+      System.getenv(EnvironmentVariableNames.KINESIS_RESOURCE_RETRIEVAL_STREAM);
 
-  public static String sierraApi = System.getenv("sierraApi");
+  public static final String sierraApi = System.getenv(EnvironmentVariableNames.SIERRA_API);
 
-  public static String accessTokenUri = System.getenv("accessTokenUri");
+  public static final String accessTokenUri =
+      System.getenv(EnvironmentVariableNames.ACCESS_TOKEN_URI);
 
-  public static String clientId = System.getenv("clientId");
+  public static final String clientId = System.getenv(EnvironmentVariableNames.CLIENT_ID);
 
-  public static String clientSecret = System.getenv("clientSecret");
+  public static final String clientSecret = System.getenv(EnvironmentVariableNames.CLIENT_SECRET);
 
-  public static String grantType = System.getenv("grantType");
+  public static final String grantType = System.getenv(EnvironmentVariableNames.GRANT_TYPE);
 
-  public static String pollDelay = System.getenv("pollDelay");
+  public static final String pollDelay = System.getenv(EnvironmentVariableNames.POLL_DELAY);
 
 
 }
