@@ -101,8 +101,6 @@ On IDE:
 
 ### Git Strategy
 
-TODO: Confirm Git Strategy
-
 `master` is stable but bleeding edge. Cut feature branches off of `master`.
 Send PRs to be merged into `master`.
 
@@ -117,8 +115,6 @@ The `production` branch should be what's running in the production environment.
 3. `Procfile` to start Spring Boot app after deployment.
 4. `eb init -i --profile <<your AWS profile>>`
 5. Initial creation of instance on Beanstalk:
-
-TODO: Confirm using instance profile of _cloudwatchable-beanstalk_.
 
 Please use the instance profile of _cloudwatchable-beanstalk_.
 Which has all the permissions needed for a traditional or Docker-flavored Beanstalk
