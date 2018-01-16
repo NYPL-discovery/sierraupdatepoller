@@ -104,10 +104,9 @@ On IDE:
 `master` is stable but bleeding edge. Cut feature branches off of `master`.
 Send PRs to be merged into `master`.
 
-`master` ==gets merged to==> `qa` ==gets merged into==> `production`.
+`master` ==branches out to==> `feature-branch` ==gets merged into==> `master`.
 
-The `qa` branch should be what's running in the QA environment.
-The `production` branch should be what's running in the production environment.
+Deployment to `production` is currently done directly on the `master` branch.
 
 ### AWS Elastic Beanstalk
 1. `.ebextensions` directory needed at application's root directory
