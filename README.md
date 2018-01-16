@@ -97,6 +97,39 @@ On IDE:
 
     * `mvn clean package -DskipTests` to just create the jar file
 
-## Deploying To Elastic Beanstalk
+## Deployment
 
-TODO: Fill this in    
+### Git Strategy
+
+`master` is stable but bleeding edge. Cut feature branches off of `master`.
+Send PRs to be merged into `master`.
+
+`master` ==branches out to==> `feature-branch` ==gets merged into==> `master`.
+
+Deployment to `production` is currently done directly on the `master` branch.
+
+### AWS Elastic Beanstalk
+1. `.ebextensions` directory needed at application's root directory
+2. `.ebextensions/environmentvariables.config` to store environment variables. For environment variables that needs to be hidden,
+3. `Procfile` to start Spring Boot app after deployment.
+4. `eb init -i --profile <<your AWS profile>>`
+5. Initial creation of instance on Beanstalk:
+
+Please use the instance profile of _cloudwatchable-beanstalk_.
+Which has all the permissions needed for a traditional or Docker-flavored Beanstalk
+machine that wants to log to CloudWatch.
+
+```bash
+eb create <<environment name>> --instance_type <<size of instance>> \
+    --instance_profile cloudwatchable-beanstalk \
+    --envvars FOO="bar",MYVAR="myval" \
+    --cname <<cname prefix (XXX.us-east-1.elasticbeanstalk.com)>> \
+    --vpc.id <<ask for custom vpc_id>> \
+    --vpc.ec2subnets <<privateSubnetId1,privateSubnetId2>> \
+    --vpc.elbsubnets <<publicSubnetId1,publicSubnetId2>> \
+    --vpc.elbpublic \
+    --profile <<your AWS profile>>
+```
+
+6. Subsequent deployment
+`eb deploy <<environment name>> --profile <<your AWS profile>>`
