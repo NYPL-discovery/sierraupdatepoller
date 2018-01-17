@@ -190,9 +190,10 @@ public class ResourceIdProcessor implements Processor {
 
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         dateFormat.setTimeZone(TimeZone.getTimeZone("Zulu"));
-        Date currentDate = dateFormat.parse('2017-01-01');
+        Date currentDate ; 
+        currentDate = dateFormat.parse("2017-01-01");
 
-        logger.info("Last updated time: " + currentDate);  // dateFormat.format(currentDate)); // .concat("T00:00:00Z"));
+        logger.info("Last updated time: " + dateFormat.format(currentDate));  // dateFormat.format(currentDate)).concat("T00:00:00Z"));
 
         return dateFormat.format(currentDate); // .concat("T00:00:00Z");
       }
