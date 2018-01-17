@@ -509,7 +509,7 @@ public class ResourceIdProcessor implements Processor {
   }
 
   private String getCurrentTimeInZuluTimeFormat() {
-    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    DateFormat dateFormat = new SimpleDateFormat(HarvesterConstants.SIERRA_API_FIELD_TIME_FORMAT);
     dateFormat.setTimeZone(TimeZone.getTimeZone("Zulu"));
 
     logger.info("Current time: " + dateFormat.format(new Date()));
