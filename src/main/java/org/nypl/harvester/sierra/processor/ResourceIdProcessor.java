@@ -384,7 +384,7 @@ public class ResourceIdProcessor implements Processor {
     try {
       String apiToCall =
           EnvironmentConfig.sierraApi + "?" + HarvesterConstants.SIERRA_API_UPDATED_DATE + "=["
-              + startDate + "," + endDate + "]&" + HarvesterConstants.SIERRA_API_OFFSET + "="
+              + startDdate + "," + endDate + "]&" + HarvesterConstants.SIERRA_API_OFFSET + "="
               + offset + "&" + HarvesterConstants.SIERRA_API_LIMIT + "=" + limit + "&"
               + HarvesterConstants.SIERRA_API_FIELDS_PARAMETER + "="
               + HarvesterConstants.SIERRA_API_FIELDS_VALUE;
