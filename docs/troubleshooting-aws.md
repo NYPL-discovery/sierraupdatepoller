@@ -1,4 +1,4 @@
-#Troubleshooting AWS
+# Troubleshooting AWS
 
 In reference to [Accessing Amazon ElastiCache](https://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/WhatIs.Accessing.html), Redis on Elasticache can only be accessed within an EC2 instance. [Based on This GitHubGist](https://gist.github.com/todgru/14768fb2d8a82ab3f436), this is to set up the EC2 instance to obtain access of Redis on Elasticache:
 ```bash
