@@ -4,9 +4,11 @@ In reference to [Accessing Amazon ElastiCache](https://docs.aws.amazon.com/Amazo
 ```bash
 $ sudo yum install gcc
 $ wget http://download.redis.io/redis-stable.tar.gz && tar xvzf redis-stable.tar.gz && cd redis-stable && make
-$ redis-stable/src/redis-cli -h <<URL of Elasticache instance>>
+$ redis-stable/src/redis-cli -h <<elasticacheURL>>
 ```
+The `elasticacheURL`
 
+To see what's in the hash
 ```bash
 elasticacheURL:6379> HGETALL bibs
 1) "bibsUpdatePoller:endTimeDelta"
@@ -19,6 +21,7 @@ elasticacheURL:6379> HGETALL bibs
 8) "false"
 ```
 
+Setting values in hash
 ```bash
 elasticacheURL:6379> HSET bibs bibsUpdatePoller:beginTimeDelta 2017-07-01T00:00:00Z
 elasticacheURL:6379> HSET bibs bibsUpdatePoller:endTimeDelta 2017-07-01T00:05:00Z
