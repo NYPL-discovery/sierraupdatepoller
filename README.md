@@ -97,22 +97,29 @@ On IDE:
 
     * `mvn clean package -DskipTests` to just create the jar file
 
-## Deployment
+# Deployment
 
 ### Git Strategy
 
 `master` is stable but bleeding edge. Cut feature branches off of `master`.
 Send PRs to be merged into `master`.
 
-`master` ==branches out to==> `feature-branch` ==gets merged into==> `master`.
+-`master` ==branches out to==> `feature-branch` ==gets merged into==> `master`.
 
-Deployment to `production` is currently done directly on the `master` branch.
+### AWS Deployment Strategy
+For each of `bib` and `item` resourceType, we deploy a separate instance of Elastic Beanstalk. Subsequent deployments can be differentiated by specifying the environment name during `eb deploy`.
+
+There is a separate branch for the delete pollers from the update pollers, so in total, we need to deploy 4 separate Elastic Beanstalk instance:
+1. Bib Updates
+2. Bib Deletes
+3. Item Updates
+4. Item Deletes
 
 ### AWS Elastic Beanstalk
 1. `.ebextensions` directory needed at application's root directory
 2. `.ebextensions/environmentvariables.config` to store environment variables. For environment variables that needs to be hidden,
 3. `Procfile` to start Spring Boot app after deployment.
-4. `eb init -i --profile <<your AWS profile>>`
+4. `eb init -i --profile <<your AWS profile>>` specify application, region, and AWS account of deployment
 5. Initial creation of instance on Beanstalk:
 
 Please use the instance profile of _cloudwatchable-beanstalk_.
