@@ -106,14 +106,18 @@ Send PRs to be merged into `master`.
 
 -`master` ==branches out to==> `feature-branch` ==gets merged into==> `master`.
 
+Changes to master need to be merged into both sierra-update-pollers branch and sierra-delete-pollers branch. 
+
+Changes needed for either of the two poller branches that cannot be shared must be made in feature branches cut off whichever poller branch needs the change and NOT merged into master. (Later on, we should make this process a little more sane.)
+
 ### AWS Deployment Strategy
 For each of `bib` and `item` resourceType, we deploy a separate instance of Elastic Beanstalk. Subsequent deployments can be differentiated by specifying the environment name during `eb deploy`.
 
-There is a separate branch for the delete pollers from the update pollers, so in total, we need to deploy 4 separate Elastic Beanstalk instance:
-1. Bib Updates
-2. Bib Deletes
-3. Item Updates
-4. Item Deletes
+There is a separate branch for the delete pollers (branch name: sierra-delete-pollers) from the update pollers (sierra-update-pollers), so in total, we need to deploy 4 separate Elastic Beanstalk instance:
+1. Bib Updates (sierra-update-pollers branch)
+2. Bib Deletes (sierra-delete-pollers branch)
+3. Item Updates (sierra-update-pollers branch)
+4. Item Deletes (sierra-delete-pollers branch) 
 
 ### AWS Elastic Beanstalk
 1. `.ebextensions` directory needed at application's root directory
