@@ -96,6 +96,17 @@ On IDE:
     * `mvn clean package` will create jar file and start the app.
 
     * `mvn clean package -DskipTests` to just create the jar file
+	
+## Running in Docker Containers
+
+* The service can be run using Docker compose.  One container has the running java app while another runs Redis.
+
+* The Dockerfile is used to build the base app.  The docker-compose.yml file references the base container and it's dependency on the Redis image. 
+
+* Commands
+  * docker-compose build
+  * docker-compose up
+	
 
 # Deployment
 
