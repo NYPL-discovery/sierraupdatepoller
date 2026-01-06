@@ -1,3 +1,7 @@
+# Deprecated
+
+This repo is deprecated in favor of https://github.com/NYPL/sierraUpdatePollerV2
+
 # SierraUpdatePoller
 
 [![Coverage Status](https://coveralls.io/repos/github/NYPL-discovery/sierraupdatepoller/badge.svg?branch=master)](https://coveralls.io/github/NYPL-discovery/sierraupdatepoller?branch=master)
